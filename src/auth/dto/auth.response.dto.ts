@@ -5,3 +5,9 @@ export class UserLogin{
     lastName: string;
     role: string;
 }
+
+export class UserAccount {
+    id: string;
+    email: string;
+    role: string;
+}

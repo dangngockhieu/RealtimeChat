@@ -5,6 +5,7 @@ import { LocalAuthGuard } from './local/local.guard';
 import { UserLogin } from './dto';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
+import { Public } from './decorator/customize.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -14,6 +15,7 @@ export class AuthController {
   ) {}
 
   @Post('login')
+  @Public()
   @UseGuards(LocalAuthGuard)
   async login(@Body() _body: LoginRequestDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const user = req.user as UserLogin;
@@ -48,6 +50,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @Public()
   async register(@Body() dto: RegisterRequestDto) {
     await this.authService.register(dto);
     return {
