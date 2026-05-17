@@ -2,9 +2,10 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { User } from './schemas/user.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ChangePasswordDto, UpdateUserDto, UserResponseDto, UserValidatorDto } from './dto';
+import { ChangePasswordDto, UpdateUserDto} from './dto/user.request.dto';
 import * as argon from "argon2";
 import { plainToInstance } from 'class-transformer';
+import { UserResponseDto, UserValidatorDto } from '../response';
 
 @Injectable()
 export class UserService {
@@ -42,7 +43,7 @@ export class UserService {
         }
 
         return plainToInstance(UserResponseDto, updatedUser, {
-            excludeExtraneousValues: false,
+            excludeExtraneousValues: true,
         });
     }
 
@@ -55,7 +56,7 @@ export class UserService {
             throw new NotFoundException('User not found');
         }
         return plainToInstance(UserResponseDto, user, {
-            excludeExtraneousValues: false,
+            excludeExtraneousValues: true,
         });
     }
 
@@ -68,7 +69,7 @@ export class UserService {
             throw new NotFoundException('User not found');
         }
         return plainToInstance(UserResponseDto, user, {
-            excludeExtraneousValues: false,
+            excludeExtraneousValues: true,
         });
     }
 
@@ -81,7 +82,7 @@ export class UserService {
             throw new NotFoundException('User not found');
         }
         return plainToInstance(UserValidatorDto, user, {
-            excludeExtraneousValues: false,
+            excludeExtraneousValues: true,
         });
     }
 }

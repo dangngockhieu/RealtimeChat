@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import * as argon from "argon2";
-import { UserLogin } from './dto';
+import { UserLogin } from '../response';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { RegisterRequestDto } from './dto/auth.request.dto';
@@ -34,7 +34,7 @@ export class AuthService {
         return { id, email: userEmail, firstName, lastName, role };
     }
 
-    private async createAccessToken(user: UserLogin){
+    private async createAccessToken(user: UserLogin): Promise<string> {
         const payload = { sub: user.id, email: user.email, role: user.role };
         const accessToken = await this.jwt.signAsync(payload, {
             secret: this.config.get<string>('JWT_SECRET'),
@@ -43,7 +43,7 @@ export class AuthService {
         return accessToken;
     }
 
-    private async createRefreshToken(user: UserLogin) {
+    private async createRefreshToken(user: UserLogin): Promise<string> {
         const payload = { sub: user.id, email: user.email};
         const refreshToken = await this.jwt.signAsync(payload, {
             secret: this.config.get<string>('JWT_REFRESH_SECRET'),
@@ -62,16 +62,7 @@ export class AuthService {
         }
     }
 
-    async login(user: UserLogin) {
-        const accessToken = await this.createAccessToken(user);
-        const refreshToken = await this.createRefreshToken(user);
-        return {
-            accessToken,
-            refreshToken
-        };
-    }
-
-    async register(dto: RegisterRequestDto) {
+    async register(dto: RegisterRequestDto): Promise<void> {
         const existingUser = await this.userService.getUserByEmail(dto.email).catch(() => null);
         if (existingUser) {
             throw new ForbiddenException('Email đã được sử dụng');
@@ -82,5 +73,25 @@ export class AuthService {
             firstName: dto.firstName,
             lastName: dto.lastName
         });
+    }
+
+    async login(user: UserLogin): Promise<{ accessToken: string; refreshToken: string }> {
+        const accessToken = await this.createAccessToken(user);
+        const refreshToken = await this.createRefreshToken(user);
+        return {
+            accessToken,
+            refreshToken
+        };
+    }
+
+    async logout(id: string): Promise<void> {
+        const user = await this.userModel.findByIdAndUpdate(
+            id,
+            { $set: { refreshToken: null } }
+        ).exec();
+
+        if (!user) {
+            throw new NotFoundException(`Không tìm thấy người dùng với ID: ${id}`);
+        }
     }
 }

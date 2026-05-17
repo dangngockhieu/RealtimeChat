@@ -2,10 +2,11 @@ import { Body, Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs
 import { AuthService } from './auth.service';
 import { LoginRequestDto, RegisterRequestDto } from './dto/auth.request.dto';
 import { LocalAuthGuard } from './local/local.guard';
-import { UserLogin } from './dto';
+import { UserAccount, UserLogin } from '../response';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import { Public } from './decorator/customize.decorator';
+import { User } from './decorator/user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -13,6 +14,16 @@ export class AuthController {
     private readonly authService: AuthService,
     private config: ConfigService
   ) {}
+
+  @Post('register')
+  @Public()
+  async register(@Body() dto: RegisterRequestDto) {
+    await this.authService.register(dto);
+    return {
+      statusCode: HttpStatus.CREATED,
+      message: 'Đăng ký thành công',
+    };
+  }
 
   @Post('login')
   @Public()
@@ -49,13 +60,23 @@ export class AuthController {
     };
   }
 
-  @Post('register')
-  @Public()
-  async register(@Body() dto: RegisterRequestDto) {
-    await this.authService.register(dto);
+  @Post('logout')
+  async logout(@User() user: UserAccount, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    await this.authService.logout(user.id);
+    const isProd = this.config.get<string>('NODE_ENV') === 'production';
+    if (req.cookies?.refreshToken) {
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? 'none' : 'lax',
+        path: '/',
+        domain: isProd ? '.techzone.vn' : undefined
+      });
+    }
     return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Đăng ký thành công',
+      statusCode: HttpStatus.OK,
+      message: 'Logout successful',
     };
   }
+
 }
