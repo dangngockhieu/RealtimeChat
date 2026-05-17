@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { TransformInterceptor } from './interceptor/transform.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,9 +24,14 @@ async function bootstrap() {
     forbidNonWhitelisted: true, // Ném lỗi nếu có thuộc tính không được định nghĩa trong DTO
     transform: true, // Tự động chuyển đổi payload thành instance của DTO
   }));
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+
+  const reflector = app.get(Reflector);
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector));
+  app.useGlobalInterceptors(new TransformInterceptor(reflector));
   app.use(helmet());
+
   app.setGlobalPrefix('api/v1');
+
   await app.listen(configService.get<string>('PORT') ?? 3000);
   if (module.hot) {
     module.hot.accept();

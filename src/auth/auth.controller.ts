@@ -1,11 +1,11 @@
-import { Body, Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginRequestDto, RegisterRequestDto } from './dto/auth.request.dto';
 import { LocalAuthGuard } from './local/local.guard';
 import { UserAccount, UserLogin } from '../response';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
-import { Public } from './decorator/customize.decorator';
+import { Public, ResponseMessage } from './decorator/customize.decorator';
 import { User } from './decorator/user.decorator';
 
 @Controller('auth')
@@ -16,16 +16,15 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @ResponseMessage('Đăng ký thành công')
   @Public()
   async register(@Body() dto: RegisterRequestDto) {
     await this.authService.register(dto);
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Đăng ký thành công',
-    };
+
   }
 
   @Post('login')
+  @ResponseMessage('Đăng nhập thành công')
   @Public()
   @UseGuards(LocalAuthGuard)
   async login(@Body() _body: LoginRequestDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
@@ -51,8 +50,6 @@ export class AuthController {
     });
 
     return {
-      statusCode: HttpStatus.OK,
-      message: 'Login successful',
       data: {
         accessToken: data.accessToken,
         user: user
@@ -61,6 +58,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @ResponseMessage('Đăng xuất thành công')
   async logout(@User() user: UserAccount, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     await this.authService.logout(user.id);
     const isProd = this.config.get<string>('NODE_ENV') === 'production';
@@ -73,10 +71,6 @@ export class AuthController {
         domain: isProd ? '.techzone.vn' : undefined
       });
     }
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Logout successful',
-    };
   }
 
 }

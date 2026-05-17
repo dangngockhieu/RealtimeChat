@@ -4,8 +4,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ChangePasswordDto, UpdateUserDto} from './dto/user.request.dto';
 import * as argon from "argon2";
+import aqp from 'api-query-params';
 import { plainToInstance } from 'class-transformer';
-import { UserResponseDto, UserValidatorDto } from '../response';
+import { PaginateResponse, UserResponseDto, UserValidatorDto } from '../response';
 
 @Injectable()
 export class UserService {
@@ -84,5 +85,36 @@ export class UserService {
         return plainToInstance(UserValidatorDto, user, {
             excludeExtraneousValues: true,
         });
+    }
+
+    async getAllUsesrs(page: number = 1, limit: number = 10, query: string): Promise<PaginateResponse<UserResponseDto>> {
+        const skip = (page - 1) * limit;
+        const { filter, sort, projection, population } = aqp(query);
+        delete filter.page;
+        delete filter.limit;
+
+        const [users, totalItems] = await Promise.all([
+            this.userModel.find(filter).select('-password')
+                .select(projection)
+                .sort(sort as any)
+                .populate(population)
+                .skip(skip)
+                .limit(limit)
+                .lean({ virtuals: true })
+                .exec(),
+            this.userModel.countDocuments(filter).exec(),
+        ]);
+
+        const totalPages = Math.ceil(totalItems / limit);
+
+        return {
+            data: users.map(user => plainToInstance(UserResponseDto, user, { excludeExtraneousValues: true })),
+            meta: {
+                currentPage: page,
+                pageSize: limit,
+                totalPages,
+                totalItems,
+            },
+        };
     }
 }
