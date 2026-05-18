@@ -6,7 +6,7 @@ import { ChangePasswordDto, UpdateUserDto} from './dto/user.request.dto';
 import * as argon from "argon2";
 import aqp from 'api-query-params';
 import { plainToInstance } from 'class-transformer';
-import { PaginateResponse, UserResponseDto, UserValidatorDto, UserWithRefreshTokenDto } from '../response';
+import { PaginateResponse, UserResponseDto, UserValidatorDto, UserWithRefreshTokenDto } from '../../response';
 
 @Injectable()
 export class UserService {

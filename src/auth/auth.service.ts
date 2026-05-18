@@ -1,14 +1,14 @@
 import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { UserService } from '../user/user.service';
+import { UserService } from '../modules/user/user.service';
 import * as argon from "argon2";
 import { UserLogin } from '../response';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { RegisterRequestDto } from './dto/auth.request.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { User } from '../user/schemas/user.schema';
-import { Model } from 'mongoose';
+import { User } from '../modules/user/schemas/user.schema';
 import { createHash } from 'crypto';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class AuthService {

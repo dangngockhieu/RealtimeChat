@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import { ChangePasswordDto, UpdateUserDto } from './dto/user.request.dto';
-import { User } from '../auth/decorator/user.decorator';
-import { UserAccount } from '../response';
-import { Public, ResponseMessage } from '../auth/decorator/customize.decorator';
+import { User } from '../../auth/decorator/user.decorator';
+import { UserAccount } from '../../response';
+import { Public, ResponseMessage } from '../../auth/decorator/customize.decorator';
 
 @Controller({
   path: 'users',
