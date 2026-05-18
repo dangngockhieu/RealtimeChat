@@ -24,3 +24,8 @@ export class UserValidatorDto extends UserResponseDto {
     @Expose()
     password: string;
 }
+
+export class UserWithRefreshTokenDto extends UserResponseDto {
+    @Expose()
+    refreshToken: string;
+}

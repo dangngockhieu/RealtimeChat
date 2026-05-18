@@ -29,6 +29,9 @@ export class User {
     @Prop({ default: false })
     isActive: boolean;
 
+    @Prop({ type: String, default: null, select: false })
+    refreshToken: string;
+
     @Prop({ select: false })
     otpCode: string;
 

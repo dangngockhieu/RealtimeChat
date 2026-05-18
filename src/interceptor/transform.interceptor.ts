@@ -33,8 +33,8 @@ export class TransformInterceptor<T>
                 context.getHandler(),
             ) || '',
             data: {
-                result: data.data,
-                meta: data.meta
+                result: data?.data ?? null,
+                meta: data?.meta ?? null,
             }
             })),
         );

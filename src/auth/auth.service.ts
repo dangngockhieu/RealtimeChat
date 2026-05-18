@@ -8,6 +8,7 @@ import { RegisterRequestDto } from './dto/auth.request.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from '../user/schemas/user.schema';
 import { Model } from 'mongoose';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +18,50 @@ export class AuthService {
         private jwt: JwtService,
         private config: ConfigService,
     ) {}
+
+    private hashToken512(token: string): string {
+        return createHash('sha512').update(token).digest('hex');
+    }
+
+    private async createAccessToken(id: string, email: string, role: string): Promise<string> {
+        const payload = { sub: id, email, role };
+        const accessToken = await this.jwt.signAsync(payload, {
+            secret: this.config.get<string>('JWT_SECRET'),
+            expiresIn: this.config.get<string>('JWT_EXPIRED') as any,
+        });
+        return accessToken;
+    }
+
+    private async createRefreshToken(id: string, email: string): Promise<string> {
+        const payload = { sub: id, email };
+        const refreshToken = await this.jwt.signAsync(payload, {
+            secret: this.config.get<string>('JWT_REFRESH_SECRET'),
+            expiresIn: this.config.get<string>('REFRESH_EXPIRED') as any,
+        });
+        return refreshToken;
+    }
+
+    private async validateRefreshToken(token: string) {
+        try {
+            const payload = await this.jwt.verifyAsync(token, {
+                secret: this.config.get<string>('JWT_REFRESH_SECRET'),
+            });
+
+            if (!payload) return null;
+
+            const user = await this.userService.getUserWithRefreshTokenById(payload.sub);
+            if (!user || !user.refreshToken) return null;
+
+            const hashedToken = this.hashToken512(token);
+
+            if (user.refreshToken !== hashedToken) return null;
+
+            return payload;
+        } catch {
+            console.error('Error occurred while validating refresh token');
+            return null;
+        }
+    }
 
     async validateUser(email: string, password: string): Promise<UserLogin> {
         const user = await this.userService.getUserByEmailWithPassword(email);
@@ -34,34 +79,6 @@ export class AuthService {
         return { id, email: userEmail, firstName, lastName, role };
     }
 
-    private async createAccessToken(user: UserLogin): Promise<string> {
-        const payload = { sub: user.id, email: user.email, role: user.role };
-        const accessToken = await this.jwt.signAsync(payload, {
-            secret: this.config.get<string>('JWT_SECRET'),
-            expiresIn: this.config.get<string>('JWT_EXPIRED') as any,
-        });
-        return accessToken;
-    }
-
-    private async createRefreshToken(user: UserLogin): Promise<string> {
-        const payload = { sub: user.id, email: user.email};
-        const refreshToken = await this.jwt.signAsync(payload, {
-            secret: this.config.get<string>('JWT_REFRESH_SECRET'),
-            expiresIn: this.config.get<string>('REFRESH_EXPIRED') as any,
-        });
-        return refreshToken;
-    }
-
-    private async verifyRefreshToken(token: string) {
-        try {
-            return await this.jwt.verifyAsync(token, {
-                secret: this.config.get<string>('JWT_REFRESH_SECRET'),
-            });
-        } catch (error) {
-            return null;
-        }
-    }
-
     async register(dto: RegisterRequestDto): Promise<void> {
         const existingUser = await this.userService.getUserByEmail(dto.email).catch(() => null);
         if (existingUser) {
@@ -76,8 +93,13 @@ export class AuthService {
     }
 
     async login(user: UserLogin): Promise<{ accessToken: string; refreshToken: string }> {
-        const accessToken = await this.createAccessToken(user);
-        const refreshToken = await this.createRefreshToken(user);
+        const accessToken = await this.createAccessToken(user.id, user.email, user.role);
+        const refreshToken = await this.createRefreshToken(user.id, user.email);
+        const hashedRefreshToken = this.hashToken512(refreshToken);
+        await this.userModel.findByIdAndUpdate(
+            user.id,
+            { $set: { refreshToken: hashedRefreshToken } }
+        ).exec();
         return {
             accessToken,
             refreshToken
@@ -94,4 +116,31 @@ export class AuthService {
             throw new NotFoundException(`Không tìm thấy người dùng với ID: ${id}`);
         }
     }
+
+async refreshTokens(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const payload = await this.validateRefreshToken(refreshToken);
+
+    if (!payload) {
+        throw new ForbiddenException('Invalid refresh token');
+    }
+
+    const user = await this.userService.getUserWithRefreshTokenById(payload.sub);
+    if (!user) {
+        throw new NotFoundException('User not found');
+    }
+
+    const accessToken = await this.createAccessToken(user.id, user.email, user.role);
+    const newRefreshToken = await this.createRefreshToken(user.id, user.email);
+    const hashedNewRefreshToken = this.hashToken512(newRefreshToken);
+
+    await this.userModel.findByIdAndUpdate(
+        user.id,
+        { $set: { refreshToken: hashedNewRefreshToken } }
+    ).exec();
+
+    return {
+        accessToken,
+        refreshToken: newRefreshToken
+    };
+}
 }

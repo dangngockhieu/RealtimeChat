@@ -6,7 +6,7 @@ import { ChangePasswordDto, UpdateUserDto} from './dto/user.request.dto';
 import * as argon from "argon2";
 import aqp from 'api-query-params';
 import { plainToInstance } from 'class-transformer';
-import { PaginateResponse, UserResponseDto, UserValidatorDto } from '../response';
+import { PaginateResponse, UserResponseDto, UserValidatorDto, UserWithRefreshTokenDto } from '../response';
 
 @Injectable()
 export class UserService {
@@ -57,6 +57,19 @@ export class UserService {
             throw new NotFoundException('User not found');
         }
         return plainToInstance(UserResponseDto, user, {
+            excludeExtraneousValues: true,
+        });
+    }
+
+    async getUserWithRefreshTokenById(userId: string): Promise<UserWithRefreshTokenDto> {
+        const user = await this.userModel.findById(userId)
+            .select('-password +refreshToken')
+            .lean({ virtuals: true })
+            .exec();
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+        return plainToInstance(UserWithRefreshTokenDto, user, {
             excludeExtraneousValues: true,
         });
     }
