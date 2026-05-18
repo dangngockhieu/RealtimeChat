@@ -2,7 +2,7 @@ declare const module: any;
 import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
+import { ClassSerializerInterceptor, ValidationPipe, VersioningType } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { TransformInterceptor } from './interceptor/transform.interceptor';
@@ -30,7 +30,11 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformInterceptor(reflector));
   app.use(helmet());
 
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api');
+  // Thiết lập versioning cho API
+  app.enableVersioning({
+    type: VersioningType.URI
+  });
 
   await app.listen(configService.get<string>('PORT') ?? 3000);
   if (module.hot) {

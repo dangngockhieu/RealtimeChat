@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res, UseGuards} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginRequestDto, RegisterRequestDto } from './dto/auth.request.dto';
 import { LocalAuthGuard } from './local/local.guard';
@@ -8,7 +8,10 @@ import type { Request, Response } from 'express';
 import { Public, ResponseMessage } from './decorator/customize.decorator';
 import { User } from './decorator/user.decorator';
 
-@Controller('auth')
+@Controller({
+  path: 'auth',
+  version: '1'
+})
 export class AuthController {
   constructor(
     private readonly authService: AuthService,

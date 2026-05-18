@@ -5,7 +5,10 @@ import { User } from '../auth/decorator/user.decorator';
 import { UserAccount } from '../response';
 import { Public, ResponseMessage } from '../auth/decorator/customize.decorator';
 
-@Controller('users')
+@Controller({
+  path: 'users',
+  version: '1'
+})
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
