@@ -6,6 +6,7 @@ import { ClassSerializerInterceptor, ValidationPipe, VersioningType } from '@nes
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { TransformInterceptor } from './interceptor/transform.interceptor';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -34,6 +35,28 @@ async function bootstrap() {
   // Thiết lập versioning cho API
   app.enableVersioning({
     type: VersioningType.URI
+  });
+
+  const config = new DocumentBuilder()
+    .setTitle('Chat Message API')
+    .setDescription('API for managing chat')
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+    'accessToken',
+    )
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document, {
+    useGlobalPrefix: true,
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
   });
 
   await app.listen(configService.get<string>('PORT') ?? 3000);
