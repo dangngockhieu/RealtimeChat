@@ -12,7 +12,7 @@ import { RESPONSE_MESSAGE } from '../auth/decorator/customize.decorator';
 export interface Response<T> {
     statusCode: number;
     message: string;
-    data: any;
+    data?: any;
 }
 
 @Injectable()
@@ -26,17 +26,26 @@ export class TransformInterceptor<T>
         return next
         .handle()
         .pipe(
-            map((data) => ({
-            statusCode: context.switchToHttp().getResponse().statusCode,
-            message: this.reflector.get<string>(
-                RESPONSE_MESSAGE,
-                context.getHandler(),
-            ) || '',
-            data: {
-                result: data?.data ?? null,
-                meta: data?.meta ?? null,
-            }
-            })),
+            map((data) => {
+                const payload: Record<string, unknown> = {};
+
+                if (data?.data !== null && data?.data !== undefined) {
+                    payload.result = data.data;
+                }
+
+                if (data?.meta !== null && data?.meta !== undefined) {
+                    payload.meta = data.meta;
+                }
+
+                return {
+                    statusCode: context.switchToHttp().getResponse().statusCode,
+                    message: this.reflector.get<string>(
+                        RESPONSE_MESSAGE,
+                        context.getHandler(),
+                    ) || '',
+                    ...(Object.keys(payload).length > 0 ? { data: payload } : {}),
+                };
+            }),
         );
     }
 }
