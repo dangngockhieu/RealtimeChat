@@ -33,7 +33,7 @@ export class UserService {
         const updatedUser = await this.userModel.findByIdAndUpdate(
             userId,
             { $set: dto },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         )
         .select('-password')
         .lean({ virtuals: true })

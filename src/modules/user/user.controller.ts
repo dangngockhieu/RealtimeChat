@@ -4,7 +4,9 @@ import { ChangePasswordDto, UpdateUserDto } from './dto/user.request.dto';
 import { User } from '../../auth/decorator/user.decorator';
 import { UserAccount } from '../../response';
 import { Public, ResponseMessage } from '../../auth/decorator/customize.decorator';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Users')
 @Controller({
   path: 'users',
   version: '1'
@@ -27,7 +29,7 @@ export class UserController {
     };
   }
 
-  @Get()
+  @Get("paginate")
   @Public()
   @ResponseMessage('Lấy danh sách người dùng thành công')
   async getALlUsers(
