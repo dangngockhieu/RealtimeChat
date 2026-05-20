@@ -4,17 +4,30 @@
   "description": "chat message",
   "main": "dist/app.js",
   "scripts": {
-    "start": "tsc && node dist/app.js",
-    "dev": "tsc && node dist/app.js",
+    "start": "nodemon",
+    "dev": "nodemon"
+  },
+  "nodemonConfig": {
+    "watch": [
+      "src"
+    ],
+    "ext": "ts",
+    "ignore": [
+      "node_modules"
+    ],
+    "exec": "ts-node ./src/app.ts"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "dotenv": "17.4.2",
     "express": "5.2.1"
   },
   "devDependencies": {
     "@types/express": "5.0.6",
     "@types/node": "25.9.1",
+    "nodemon": "3.1.14",
+    "ts-node": "10.9.2",
     "typescript": "6.0.3"
   }
 }

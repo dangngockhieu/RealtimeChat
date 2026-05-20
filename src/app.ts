@@ -1,11 +1,20 @@
 import express from 'express';
+import 'dotenv/config';
+import webRoutes from './routes/hello';
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
+// config routes
+webRoutes(app);
+
+// config static files
+app.use(express.static('public'));
+
+// health check
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
 });
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+  console.log(`App listening on port ${port}`);
 });
