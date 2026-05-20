@@ -23,7 +23,7 @@ export class Member {
 
   @Prop({
     type: String,
-    enum: ['PENDING', 'ACCEPTED'],
+    enum: ['PENDING', 'ACCEPTED', 'LEFT', 'REMOVED'],
     default: 'PENDING',
   })
   status: string;
@@ -31,18 +31,18 @@ export class Member {
   @Prop({ type: Date, default: Date.now })
   joinedAt: Date;
 
+  @Prop({ type: Date, default: null })
+  leftAt: Date | null;
+
+  // Tin nhắn cuối cùng mà thành viên đã đọc trong cuộc trò chuyện
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Message', default: null })
   lastReadMessageId: Types.ObjectId | Message | null;
 
-  @Prop({ type: Number, default: 0 })
-  unreadCount: number;
+  // Dùng để đếm số lượng tin nhắn chưa đọc của thành viên trong cuộc trò chuyện
+  @Prop({ type: Date, default: null })
+  lastReadAt: Date | null;
 
-  @Prop({ type: Boolean, default: false })
-  isMuted: boolean;
-
-  @Prop({ type: Boolean, default: false })
-  isPinned: boolean;
-
+  // Xóa lịch sử phía tôi
   @Prop({ type: Date, default: null })
   clearedAt: Date | null;
 }

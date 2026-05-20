@@ -16,17 +16,25 @@ export class Message {
   @Prop({ type: String, default: '' })
   content: string;
 
+  //Trả lời tin nhắn nào
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Message', default: null })
   replyTo: Types.ObjectId | Message | null;
 
+  // Tin nhắn đã bị thu hồi chưa
   @Prop({ type: Boolean, default: false })
   isRecalled: boolean;
 
+  // Thời gian thu hồi tin nhắn
   @Prop({ type: Date, default: null })
   recalledAt: Date | null;
 
+  // Đánh dấu ai đã thu hồi tin nhắn(ng gửi hoặc admin thu hồi)
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', default: null })
   recalledBy: Types.ObjectId | User | null;
+
+  // Danh sách người dùng đã xóa tin nhắn này
+  @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: 'User' }], default: [] })
+  deletedBy: Types.ObjectId[];
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
