@@ -9,10 +9,10 @@ export type FriendshipDocument = HydratedDocument<Friendship>;
 })
 export class Friendship {
     @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
-    requester: User; // Người gửi lời mời
+    requester: Types.ObjectId | User // Người gửi lời mời
 
     @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
-    recipient: User; // Người nhận lời mời
+    recipient: Types.ObjectId | User // Người nhận lời mời
 
 
     @Prop({
@@ -28,3 +28,9 @@ export class Friendship {
 }
 
 export const FriendshipSchema = SchemaFactory.createForClass(Friendship);
+FriendshipSchema.index({ requester: 1, recipient: 1 });
+FriendshipSchema.index({ recipient: 1, requester: 1 });
+
+FriendshipSchema.index({ recipient: 1, status: 1 });
+FriendshipSchema.index({ blockedBy: 1, status: 1 });
+FriendshipSchema.index({ requester: 1, status: 1 });
