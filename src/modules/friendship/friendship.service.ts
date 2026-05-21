@@ -5,22 +5,19 @@ import { InjectModel } from '@nestjs/mongoose';
 import { FriendshipResponseDto, FriendshipUserDto, PendingFriendshipResponseDto } from '../../response';
 import { plainToInstance } from 'class-transformer';
 import { Types } from 'mongoose';
+import { FriendshipRepository } from './friendship.repository';
 
 @Injectable()
 export class FriendshipService {
-    constructor(@InjectModel(Friendship.name) private friendShipModel: Model<Friendship>) {}
+    constructor(private readonly friendshipRepository: FriendshipRepository,
+        @InjectModel(Friendship.name) private friendShipModel: Model<Friendship>) {}
 
     // Tạo lời mời kết bạn
     async createFriendship(userId: string, friendId: string): Promise<FriendshipResponseDto> {
         if (userId === friendId) {
             throw new BadRequestException('Không thể gửi lời mời kết bạn cho chính mình');
         }
-        const existingFriendship = await this.friendShipModel.findOne({
-            $or: [
-                { requester: userId, recipient: friendId },
-                { requester: friendId, recipient: userId },
-            ],
-        } as any).exec();
+        const existingFriendship = await this.friendshipRepository.findFriendship(userId, friendId);
 
         if (existingFriendship) {
             if (existingFriendship.status === 'BLOCKED') {
