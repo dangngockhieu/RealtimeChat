@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
-import { User } from '../../user/schemas/user.schema';
 import { Message } from '../../message/schemas/message.schema';
 
 export type ConversationDocument = HydratedDocument<Conversation>;
@@ -20,7 +19,7 @@ export class Conversation {
     @Prop({
       type: String,
       enum: ['PUBLIC', 'PRIVATE'],
-      default: null,
+      default: 'PRIVATE',
     })
     privacy: string;
 
