@@ -5,15 +5,11 @@ import { UserLogin } from '../response';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { RegisterRequestDto } from './dto/auth.request.dto';
-import { InjectModel } from '@nestjs/mongoose';
-import { User } from '../modules/user/schemas/user.schema';
 import { createHash } from 'crypto';
-import { Model } from 'mongoose';
 
 @Injectable()
 export class AuthService {
     constructor(
-        @InjectModel(User.name) private userModel: Model<User>,
         private userService: UserService,
         private jwt: JwtService,
         private config: ConfigService,
@@ -84,22 +80,14 @@ export class AuthService {
         if (existingUser) {
             throw new ForbiddenException('Email đã được sử dụng');
         }
-        await this.userModel.create({
-            email: dto.email,
-            password: await argon.hash(dto.password),
-            firstName: dto.firstName,
-            lastName: dto.lastName
-        });
+        await this.userService.createUser(dto.email, dto.password, dto.firstName, dto.lastName);
     }
 
     async login(user: UserLogin): Promise<{ accessToken: string; refreshToken: string }> {
         const accessToken = await this.createAccessToken(user.id, user.email, user.role);
         const refreshToken = await this.createRefreshToken(user.id, user.email);
         const hashedRefreshToken = this.hashToken512(refreshToken);
-        await this.userModel.findByIdAndUpdate(
-            user.id,
-            { $set: { refreshToken: hashedRefreshToken } }
-        ).exec();
+        await this.userService.updateRefreshToken(user.id, hashedRefreshToken);
         return {
             accessToken,
             refreshToken
@@ -107,14 +95,7 @@ export class AuthService {
     }
 
     async logout(id: string): Promise<void> {
-        const user = await this.userModel.findByIdAndUpdate(
-            id,
-            { $set: { refreshToken: null } }
-        ).exec();
-
-        if (!user) {
-            throw new NotFoundException(`Không tìm thấy người dùng với ID: ${id}`);
-        }
+        await this.userService.updateRefreshToken(id, null);
     }
 
 async refreshTokens(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
@@ -133,10 +114,7 @@ async refreshTokens(refreshToken: string): Promise<{ accessToken: string; refres
     const newRefreshToken = await this.createRefreshToken(user.id, user.email);
     const hashedNewRefreshToken = this.hashToken512(newRefreshToken);
 
-    await this.userModel.findByIdAndUpdate(
-        user.id,
-        { $set: { refreshToken: hashedNewRefreshToken } }
-    ).exec();
+    await this.userService.updateRefreshToken(user.id, hashedNewRefreshToken);
 
     return {
         accessToken,

@@ -1,22 +1,21 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { User } from './schemas/user.schema';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { ChangePasswordDto, UpdateUserDto} from './dto/user.request.dto';
 import * as argon from "argon2";
 import aqp from 'api-query-params';
 import { plainToInstance } from 'class-transformer';
 import { PaginateResponse, UserResponseDto, UserValidatorDto, UserWithRefreshTokenDto } from '../../response';
+import { UserRepository } from './user.repository';
 
 @Injectable()
 export class UserService {
-    constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+    constructor(private readonly userRepository: UserRepository) {}
 
+    // Đổi mật khẩu cho người dùng
     async updatePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
         if(dto.newPassword !== dto.confirmPassword) {
             throw new BadRequestException('New password and confirm password do not match');
         }
-        const user = await this.userModel.findById(userId);
+        const user = await this.userRepository.findByIdWithPassword(userId);
         if(!user) {
             throw new NotFoundException('User not found');
         }
@@ -25,19 +24,12 @@ export class UserService {
             throw new ForbiddenException('Old password is incorrect');
         }
         const hashedPassword = await argon.hash(dto.newPassword);
-        user.password = hashedPassword;
-        await user.save();
+        await this.userRepository.updatePassword(userId, hashedPassword);
     }
 
+    // Cập nhật thông tin cá nhân của người dùng
     async updateUserProfile(userId: string, dto:UpdateUserDto): Promise<UserResponseDto> {
-        const updatedUser = await this.userModel.findByIdAndUpdate(
-            userId,
-            { $set: dto },
-            { returnDocument: 'after', runValidators: true }
-        )
-        .select('-password')
-        .lean({ virtuals: true })
-        .exec();
+        const updatedUser = await this.userRepository.updateProfile(userId, dto);
 
         if (!updatedUser) {
             throw new NotFoundException('Không tìm thấy người dùng để cập nhật');
@@ -48,11 +40,9 @@ export class UserService {
         });
     }
 
+    // Lấy thông tin người dùng theo ID
     async getUserById(userId: string): Promise<UserResponseDto> {
-        const user = await this.userModel.findById(userId)
-            .select('-password')
-            .lean({ virtuals: true })
-            .exec();
+        const user = await this.userRepository.findById(userId);
         if (!user) {
             throw new NotFoundException('User not found');
         }
@@ -61,11 +51,9 @@ export class UserService {
         });
     }
 
+    // Lấy thông tin người dùng theo ID, bao gồm refreshToken (dành cho xác thực)
     async getUserWithRefreshTokenById(userId: string): Promise<UserWithRefreshTokenDto> {
-        const user = await this.userModel.findById(userId)
-            .select('-password +refreshToken')
-            .lean({ virtuals: true })
-            .exec();
+        const user = await this.userRepository.findByIdWithRefreshToken(userId);
         if (!user) {
             throw new NotFoundException('User not found');
         }
@@ -74,11 +62,9 @@ export class UserService {
         });
     }
 
+    // Lấy thông tin người dùng theo email
     async getUserByEmail(email: string): Promise<UserResponseDto> {
-        const user = await this.userModel.findOne({ email })
-            .select('-password')
-            .lean({ virtuals: true })
-            .exec();
+        const user = await this.userRepository.findByEmail(email);
         if (!user) {
             throw new NotFoundException('User not found');
         }
@@ -87,11 +73,9 @@ export class UserService {
         });
     }
 
+    // Lấy thông tin người dùng theo email, bao gồm mật khẩu (dành cho xác thực)
     async getUserByEmailWithPassword(email: string): Promise<UserValidatorDto> {
-        const user = await this.userModel.findOne({ email })
-            .select('+password')
-            .lean({ virtuals: true })
-            .exec();
+        const user = await this.userRepository.findByEmailWithPassword(email);
         if (!user) {
             throw new NotFoundException('User not found');
         }
@@ -100,6 +84,7 @@ export class UserService {
         });
     }
 
+    // Lấy danh sách người dùng với phân trang và lọc
     async getAllUsesrs(page: number = 1, limit: number = 10, query: string): Promise<PaginateResponse<UserResponseDto>> {
         const skip = (page - 1) * limit;
         const { filter, sort, projection, population } = aqp(query);
@@ -107,15 +92,8 @@ export class UserService {
         delete filter.limit;
 
         const [users, totalItems] = await Promise.all([
-            this.userModel.find(filter).select('-password')
-                .select(projection)
-                .sort(sort as any)
-                .populate(population)
-                .skip(skip)
-                .limit(limit)
-                .lean({ virtuals: true })
-                .exec(),
-            this.userModel.countDocuments(filter).exec(),
+            this.userRepository.findAll(filter, sort, projection, population, skip, limit),
+            this.userRepository.count(filter),
         ]);
 
         const totalPages = Math.ceil(totalItems / limit);
@@ -129,5 +107,16 @@ export class UserService {
                 totalItems,
             },
         };
+    }
+
+    // Tạo người dùng mới (đăng ký)
+    async createUser(email: string, password: string, firstName: string, lastName: string): Promise<void> {
+        const hashedPassword = await argon.hash(password);
+        await this.userRepository.createUser(email, hashedPassword, firstName, lastName);
+    }
+
+    // Cập nhật refresh token cho người dùng
+    async updateRefreshToken(userId: string, refreshToken: string | null): Promise<void> {
+        await this.userRepository.updateRefreshToken(userId, refreshToken);
     }
 }
