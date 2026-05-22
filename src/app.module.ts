@@ -9,6 +9,7 @@ import { JwtAuthGuard } from './auth/jwt/jwt.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { FriendshipModule } from './modules/friendship/friendship.module';
 import { ConversationModule } from './modules/conversation/conversation.module';
+import { MemberModule } from './modules/member/member.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ConversationModule } from './modules/conversation/conversation.module';
     AuthModule,
     FriendshipModule,
     ConversationModule,
+    MemberModule,
   ],
   controllers: [AppController],
   providers: [
