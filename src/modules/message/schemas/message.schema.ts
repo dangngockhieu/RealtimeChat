@@ -16,7 +16,17 @@ export class Message {
   @Prop({ type: String, default: '' })
   content: string;
 
-  //Trả lời tin nhắn nào
+  @Prop({
+    type: String,
+    enum: ['TEXT', 'IMAGE', 'FILE', 'SYSTEM'],
+    default: 'TEXT',
+  })
+  type: string;
+
+  @Prop({ type: [String], default: [] })
+  attachments: string[];
+
+  // Trả lời tin nhắn nào
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Message', default: null })
   replyTo: Types.ObjectId | Message | null;
 
@@ -28,11 +38,11 @@ export class Message {
   @Prop({ type: Date, default: null })
   recalledAt: Date | null;
 
-  // Đánh dấu ai đã thu hồi tin nhắn(ng gửi hoặc admin thu hồi)
+  // Đánh dấu ai đã thu hồi tin nhắn (người gửi hoặc admin/owner thu hồi)
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', default: null })
   recalledBy: Types.ObjectId | User | null;
 
-  // Danh sách người dùng đã xóa tin nhắn này
+  // Danh sách người dùng đã xóa tin nhắn này ở phía họ
   @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: 'User' }], default: [] })
   deletedBy: Types.ObjectId[];
 }

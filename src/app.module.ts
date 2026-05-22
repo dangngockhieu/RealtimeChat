@@ -10,6 +10,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { FriendshipModule } from './modules/friendship/friendship.module';
 import { ConversationModule } from './modules/conversation/conversation.module';
 import { MemberModule } from './modules/member/member.module';
+import { MessageModule } from './modules/message/message.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { MemberModule } from './modules/member/member.module';
     FriendshipModule,
     ConversationModule,
     MemberModule,
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [
