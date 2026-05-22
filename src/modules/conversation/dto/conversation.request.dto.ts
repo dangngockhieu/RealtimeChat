@@ -20,3 +20,9 @@ export class CreateGroupChatDto {
     @ArrayMinSize(2)
     participantIds: string[];
 }
+
+export class UpdateGroupNameDto {
+    @IsString()
+    @IsNotEmpty({ message: 'Tên nhóm không được để trống' })
+    name: string;
+}

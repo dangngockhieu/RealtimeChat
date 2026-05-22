@@ -247,4 +247,60 @@ export class ConversationService {
 
         return { result, nextCursor, hasNextPage };
     }
+
+    async getConversationDetail(conversationId: string, currentUserId: string): Promise<ConversationDetailResponseDto> {
+        const isMember = await this.memberModel.exists({
+            conversationId,
+            userId: currentUserId,
+            status: 'ACCEPTED',
+        });
+        if (!isMember) {
+            throw new InternalServerErrorException('Bạn không thuộc cuộc trò chuyện này');
+        }
+        return this.formatConversationResponse(conversationId, currentUserId);
+    }
+
+    async updateGroupName(conversationId: string, userId: string, name: string): Promise<void> {
+        const conversation = await this.conversationModel.findById(conversationId);
+        if (!conversation || !conversation.isActive) {
+            throw new InternalServerErrorException('Cuộc trò chuyện không tồn tại');
+        }
+        if (conversation.type !== 'GROUP') {
+            throw new InternalServerErrorException('Chỉ nhóm chat mới có thể đổi tên');
+        }
+
+        const member = await this.memberModel.findOne({
+            conversationId,
+            userId,
+            status: 'ACCEPTED',
+        });
+        if (!member || (member.role !== 'OWNER' && member.role !== 'ADMIN')) {
+            throw new InternalServerErrorException('Chỉ Quản trị viên hoặc Trưởng nhóm mới có thể đổi tên');
+        }
+
+        conversation.name = name.trim();
+        await conversation.save();
+    }
+
+    async disbandGroup(conversationId: string, userId: string): Promise<void> {
+        const conversation = await this.conversationModel.findById(conversationId);
+        if (!conversation || !conversation.isActive) {
+            throw new InternalServerErrorException('Cuộc trò chuyện không tồn tại');
+        }
+        if (conversation.type !== 'GROUP') {
+            throw new InternalServerErrorException('Chỉ nhóm chat mới có thể giải tán');
+        }
+
+        const member = await this.memberModel.findOne({
+            conversationId,
+            userId,
+            status: 'ACCEPTED',
+        });
+        if (!member || member.role !== 'OWNER') {
+            throw new InternalServerErrorException('Chỉ Trưởng nhóm mới có quyền giải tán nhóm');
+        }
+
+        conversation.isActive = false;
+        await conversation.save();
+    }
 }
