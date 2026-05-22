@@ -1,20 +1,34 @@
 import express from 'express';
 import 'dotenv/config';
-import webRoutes from './routes/hello';
+import cors from 'cors';
+import userRoutes from './routes/user.routes';
+import { responseFormatter } from './middlewares/formatResponse/success/successResponse';
+import { errorHandler } from './middlewares/formatResponse/exception/errorHandler';
+
 const app = express();
-const port = process.env.PORT || 3000;
+const origins = process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean);
 
-// config routes
-webRoutes(app);
-
-// config static files
+app.use(
+  cors({
+    origin: origins && origins.length > 0 ? origins : true,
+    credentials: true
+  })
+);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// health check
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+// Áp dụng middleware formatResponse (SUCCESS)
+app.use(responseFormatter);
+
+// Config routes
+userRoutes(app);
+
+app.get('/', (_req, res) => {
+  res.send("Server is running");
 });
 
-app.listen(port, () => {
-  console.log(`App listening on port ${port}`);
-});
+// Áp dụng middleware Error Handler (EXCEPTION)
+app.use(errorHandler);
+
+export default app;
