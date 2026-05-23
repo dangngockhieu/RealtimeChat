@@ -1,13 +1,40 @@
 import { Router, Express } from 'express';
-import { getAllUsers, getUserByEmail } from '../controllers/user.controller';
+import {
+  getAllUsers,
+  getUserByEmail,
+  getUserById,
+  getProfile,
+  changePassword,
+  updateProfile,
+} from '../controllers/user.controller';
+import { authenticate, authorize } from '../middlewares/auth';
+import { Role } from '../schemas/user.schema';
 
 const router = Router();
 
 const userRoutes = (app: Express) => {
-    router.get('/paginate', getAllUsers);
-    router.get('/', getUserByEmail);
 
-    app.use('/users', router);
-}
+  // Lấy thông tin profile của chính mình
+  router.get('/profile', authenticate, getProfile);
+
+  // Đổi mật khẩu
+  router.put('/change-password', authenticate, changePassword);
+
+  // Cập nhật profile
+  router.put('/profile', authenticate, updateProfile);
+
+  // ==================== ADMIN ONLY ====================
+
+  // Lấy danh sách tất cả users (phân trang)
+  router.get('/paginate', authenticate, authorize(Role.ADMIN), getAllUsers);
+
+  // Tìm user theo email
+  router.get('/search', authenticate, authorize(Role.ADMIN), getUserByEmail);
+
+  // Lấy user theo ID
+  router.get('/:id', authenticate, authorize(Role.ADMIN), getUserById);
+
+  app.use('/users', router);
+};
 
 export default userRoutes;

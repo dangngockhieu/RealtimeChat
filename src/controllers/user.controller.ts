@@ -1,18 +1,27 @@
 import { Request, Response } from 'express';
-import { getAllUsers as getAllUsersService, getUserByEmail as getUserByEmailService } from '../services/user.service';
+import {
+  getAllUsers as getAllUsersService,
+  getUserByEmail as getUserByEmailService,
+  getUserById as getUserByIdService,
+  updatePassword as updatePasswordService,
+  updateUserProfile as updateUserProfileService,
+} from '../services/user.service';
 import { BadRequestException } from '../middlewares/formatResponse/exception/customException';
+import { UserAccount } from '../dtos/response/auth.interface';
 
-//   const changePassword = async (req: Request, res: Response, next: NextFunction) => {
-//     await this.userService.updatePassword(req.user!.id, req.body);
-//     res.customSuccess(null, 'Đổi mật khẩu thành công');
-//   };
+export const changePassword = async (req: Request, res: Response) => {
+  const user = req.user as UserAccount;
+  await updatePasswordService(user.id, req.body);
+  res.customSuccess(null, 'Đổi mật khẩu thành công');
+};
 
-//   const updateProfile = async (req: Request, res: Response, next: NextFunction) => {
-//     const data = await this.userService.updateUserProfile(req.user!.id, req.body);
-//     res.customSuccess(data, 'Cập nhật hồ sơ thành công');
-//   };
+export const updateProfile = async (req: Request, res: Response) => {
+  const user = req.user as UserAccount;
+  const data = await updateUserProfileService(user.id, req.body);
+  res.customSuccess(data, 'Cập nhật hồ sơ thành công');
+};
 
-const getAllUsers = async (req: Request, res: Response) => {
+export const getAllUsers = async (req: Request, res: Response) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
   const filter: any = {};
@@ -25,10 +34,10 @@ const getAllUsers = async (req: Request, res: Response) => {
   res.customSuccess(result, 'Lấy danh sách người dùng thành công');
 };
 
-const getUserByEmail = async (req: Request, res: Response) => {
+export const getUserByEmail = async (req: Request, res: Response) => {
   const email = req.query.email as string;
   if (!email) {
-    // Demo sử dụng exception error chung
+    // Sử dụng exception error chung
     throw BadRequestException('Vui lòng cung cấp email');
   }
 
@@ -38,13 +47,11 @@ const getUserByEmail = async (req: Request, res: Response) => {
   res.customSuccess(data, 'Lấy người dùng theo email thành công');
 };
 
-//   const getProfile = async (req: Request, res: Response, next: NextFunction) => {
-//     res.customSuccess(req.user, 'Lấy hồ sơ thành công');
-//   };
+export const getProfile = async (req: Request, res: Response) => {
+  res.customSuccess(req.user, 'Lấy hồ sơ thành công');
+};
 
-//   const getUserById = async (req: Request, res: Response, next: NextFunction) => {
-//     const data = await this.userService.getUserById(req.params.id);
-//     res.customSuccess(data, 'Lấy người dùng theo ID thành công');
-//   };
-
-export { getAllUsers, getUserByEmail };
+export const getUserById = async (req: Request, res: Response) => {
+  const data = await getUserByIdService(req.params.id as string);
+  res.customSuccess(data, 'Lấy người dùng theo ID thành công');
+};
