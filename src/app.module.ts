@@ -11,6 +11,7 @@ import { FriendshipModule } from './modules/friendship/friendship.module';
 import { ConversationModule } from './modules/conversation/conversation.module';
 import { MemberModule } from './modules/member/member.module';
 import { MessageModule } from './modules/message/message.module';
+import { ChatGatewayModule } from './modules/chat-gateway/chat-gateway.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { MessageModule } from './modules/message/message.module';
     ConversationModule,
     MemberModule,
     MessageModule,
+    ChatGatewayModule,
   ],
   controllers: [AppController],
   providers: [
