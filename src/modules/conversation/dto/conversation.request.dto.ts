@@ -1,28 +1,50 @@
-import { ArrayMinSize, IsArray, IsMongoId, IsNotEmpty, IsString } from "class-validator";
+import { ApiProperty } from '@nestjs/swagger';
+import { ArrayMinSize, IsArray, IsMongoId, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateDirectChatDto {
-    @IsMongoId()
-    @IsNotEmpty()
-    targetUserId: string;
+  @ApiProperty({
+    example: '65f1a2b3c4d5e6f7a8b9c0d2',
+    description: 'ID người dùng muốn tạo hoặc tìm cuộc trò chuyện 1-1',
+  })
+  @IsMongoId({ message: 'targetUserId phải là MongoId hợp lệ' })
+  @IsNotEmpty({ message: 'targetUserId không được để trống' })
+  targetUserId: string;
 }
 
 export class CreateGroupChatDto {
-    @IsString()
-    @IsNotEmpty()
-    name: string;
+  @ApiProperty({
+    example: 'Nhóm Dự Án Tốt Nghiệp',
+    description: 'Tên của nhóm chat',
+  })
+  @IsString({ message: 'Tên nhóm phải là chuỗi' })
+  @IsNotEmpty({ message: 'Tên nhóm không được để trống' })
+  name: string;
 
-    @IsString()
-    @IsNotEmpty()
-    privacy: string;
+  @ApiProperty({
+    example: 'PRIVATE',
+    enum: ['PUBLIC', 'PRIVATE'],
+    description: 'Quyền riêng tư của nhóm chat',
+  })
+  @IsString()
+  @IsNotEmpty({ message: 'privacy không được để trống' })
+  privacy: string;
 
-    @IsArray()
-    @IsMongoId({ each: true })
-    @ArrayMinSize(2)
-    participantIds: string[];
+  @ApiProperty({
+    example: ['65f1a2b3c4d5e6f7a8b9c0d2', '65f1a2b3c4d5e6f7a8b9c0d3'],
+    description: 'Danh sách ID các thành viên tham gia nhóm (tối thiểu 2 người)',
+  })
+  @IsArray({ message: 'participantIds phải là mảng' })
+  @IsMongoId({ each: true, message: 'Mỗi participantId phải là MongoId hợp lệ' })
+  @ArrayMinSize(2, { message: 'Nhóm phải có ít nhất 2 thành viên khác ngoài người tạo' })
+  participantIds: string[];
 }
 
 export class UpdateGroupNameDto {
-    @IsString()
-    @IsNotEmpty({ message: 'Tên nhóm không được để trống' })
-    name: string;
-}
+  @ApiProperty({
+    example: 'Nhóm Dự Án 2026',
+    description: 'Tên nhóm mới',
+  })
+  @IsString({ message: 'name phải là chuỗi' })
+  @IsNotEmpty({ message: 'Tên nhóm không được để trống' })
+  name: string;
+}
