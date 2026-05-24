@@ -5,10 +5,14 @@ import aqp from 'api-query-params';
 import { plainToInstance } from 'class-transformer';
 import { PaginateResponse, UserResponseDto, UserValidatorDto, UserWithRefreshTokenDto } from '../../response';
 import { UserRepository } from './user.repository';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class UserService {
-    constructor(private readonly userRepository: UserRepository) {}
+    constructor(
+        private readonly userRepository: UserRepository,
+        private readonly uploadService: UploadService,
+    ) {}
 
     // Đổi mật khẩu cho người dùng
     async updatePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
@@ -113,6 +117,102 @@ export class UserService {
     async createUser(email: string, password: string, firstName: string, lastName: string): Promise<void> {
         const hashedPassword = await argon.hash(password);
         await this.userRepository.createUser(email, hashedPassword, firstName, lastName);
+    }
+
+    // Tạo người dùng mới kèm mã OTP kích hoạt
+    async createUserWithOtp(
+        email: string,
+        password: string,
+        firstName: string,
+        lastName: string,
+        otpCode: string,
+        otpExpired: Date,
+    ): Promise<void> {
+        const hashedPassword = await argon.hash(password);
+        await this.userRepository.createUserWithOtp(
+            email,
+            hashedPassword,
+            firstName,
+            lastName,
+            otpCode,
+            otpExpired,
+        );
+    }
+
+    // Lấy thông tin người dùng kèm OTP (phục vụ xác thực OTP)
+    async getUserByEmailWithOtp(email: string) {
+        return this.userRepository.findByEmailWithOtp(email);
+    }
+
+    // Kích hoạt tài khoản
+    async activateUser(userId: string): Promise<void> {
+        await this.userRepository.activateUser(userId);
+    }
+
+    // Cập nhật mã OTP mới
+    async updateOtp(userId: string, otpCode: string, otpExpired: Date): Promise<void> {
+        await this.userRepository.updateOtp(userId, otpCode, otpExpired);
+    }
+
+    // Cập nhật ảnh đại diện người dùng qua URL (xóa file avatar cũ nếu khác)
+    async updateAvatar(userId: string, avatarUrl: string): Promise<UserResponseDto> {
+        const currentUser = await this.userRepository.findById(userId);
+        if (!currentUser) {
+            throw new NotFoundException('Không tìm thấy người dùng');
+        }
+
+        // Nếu người dùng đã có avatar cũ và khác với avatar mới, xóa file cũ trên đĩa
+        if (currentUser.avatar && currentUser.avatar !== avatarUrl) {
+            this.uploadService.deleteFileByUrl(currentUser.avatar);
+        }
+
+        const updatedUser = await this.userRepository.updateAvatar(userId, avatarUrl);
+        return plainToInstance(UserResponseDto, updatedUser, {
+            excludeExtraneousValues: true,
+        });
+    }
+
+    // Tải lên và thay đổi ảnh đại diện cá nhân (xóa file cũ trên đĩa)
+    async uploadAndChangeAvatar(userId: string, file?: Express.Multer.File): Promise<UserResponseDto> {
+        if (!file) {
+            throw new BadRequestException('Vui lòng chọn tệp hình ảnh để tải lên');
+        }
+
+        const currentUser = await this.userRepository.findById(userId);
+        if (!currentUser) {
+            // Xóa file vừa upload để tránh tồn đọng file rác
+            this.uploadService.deleteFileByUrl(`/public/uploads/avatars/${file.filename}`);
+            throw new NotFoundException('Không tìm thấy người dùng');
+        }
+
+        // Xóa avatar cũ nếu có trên đĩa
+        if (currentUser.avatar) {
+            this.uploadService.deleteFileByUrl(currentUser.avatar);
+        }
+
+        const newAvatarUrl = `/public/uploads/avatars/${file.filename}`;
+        const updatedUser = await this.userRepository.updateAvatar(userId, newAvatarUrl);
+        return plainToInstance(UserResponseDto, updatedUser, {
+            excludeExtraneousValues: true,
+        });
+    }
+
+    // Gỡ ảnh đại diện người dùng (xóa file cũ trên đĩa và cập nhật DB về null)
+    async removeAvatar(userId: string): Promise<UserResponseDto> {
+        const currentUser = await this.userRepository.findById(userId);
+        if (!currentUser) {
+            throw new NotFoundException('Không tìm thấy người dùng');
+        }
+
+        // Xóa avatar cũ nếu có trên đĩa
+        if (currentUser.avatar) {
+            this.uploadService.deleteFileByUrl(currentUser.avatar);
+        }
+
+        const updatedUser = await this.userRepository.updateAvatar(userId, null);
+        return plainToInstance(UserResponseDto, updatedUser, {
+            excludeExtraneousValues: true,
+        });
     }
 
     // Cập nhật refresh token cho người dùng

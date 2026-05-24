@@ -12,6 +12,8 @@ import { ConversationModule } from './modules/conversation/conversation.module';
 import { MemberModule } from './modules/member/member.module';
 import { MessageModule } from './modules/message/message.module';
 import { ChatGatewayModule } from './modules/chat-gateway/chat-gateway.module';
+import { MailModule } from './modules/mail/mail.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { ChatGatewayModule } from './modules/chat-gateway/chat-gateway.module';
     MemberModule,
     MessageModule,
     ChatGatewayModule,
+    MailModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [

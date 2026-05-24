@@ -17,6 +17,9 @@ export class UserResponseDto {
     role: string;
 
     @Expose()
+    avatar: string | null;
+
+    @Expose()
     isActive: boolean;
 }
 

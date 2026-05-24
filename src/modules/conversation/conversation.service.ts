@@ -303,4 +303,26 @@ export class ConversationService {
         conversation.isActive = false;
         await conversation.save();
     }
+
+    async updateGroupAvatar(conversationId: string, userId: string, avatarUrl: string): Promise<void> {
+        const conversation = await this.conversationModel.findById(conversationId);
+        if (!conversation || !conversation.isActive) {
+            throw new InternalServerErrorException('Cuộc trò chuyện không tồn tại');
+        }
+        if (conversation.type !== 'GROUP') {
+            throw new InternalServerErrorException('Chỉ nhóm chat mới có thể đổi ảnh đại diện');
+        }
+
+        const member = await this.memberModel.findOne({
+            conversationId,
+            userId,
+            status: 'ACCEPTED',
+        });
+        if (!member || (member.role !== 'OWNER' && member.role !== 'ADMIN')) {
+            throw new InternalServerErrorException('Chỉ Quản trị viên hoặc Trưởng nhóm mới có thể đổi ảnh đại diện');
+        }
+
+        conversation.avatar = avatarUrl.trim();
+        await conversation.save();
+    }
 }

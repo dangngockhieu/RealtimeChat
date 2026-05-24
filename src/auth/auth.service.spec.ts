@@ -6,7 +6,8 @@ import { AuthService } from './auth.service';
 import { UserService } from '../modules/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { ForbiddenException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { MailService } from '../modules/mail/mail.service';
+import { BadRequestException, ForbiddenException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import * as argon from 'argon2';
 
 describe('AuthService', () => {
@@ -14,6 +15,7 @@ describe('AuthService', () => {
   let userService: any;
   let jwtService: any;
   let configService: any;
+  let mailService: any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -25,6 +27,10 @@ describe('AuthService', () => {
             getUserByEmailWithPassword: jest.fn(),
             getUserByEmail: jest.fn(),
             createUser: jest.fn(),
+            createUserWithOtp: jest.fn(),
+            getUserByEmailWithOtp: jest.fn(),
+            activateUser: jest.fn(),
+            updateOtp: jest.fn(),
             updateRefreshToken: jest.fn(),
             getUserWithRefreshTokenById: jest.fn(),
           },
@@ -42,6 +48,12 @@ describe('AuthService', () => {
             get: jest.fn().mockReturnValue('mockSecret'),
           },
         },
+        {
+          provide: MailService,
+          useValue: {
+            sendVerificationOtp: jest.fn().mockResolvedValue(true),
+          },
+        },
       ],
     }).compile();
 
@@ -49,6 +61,7 @@ describe('AuthService', () => {
     userService = module.get<UserService>(UserService);
     jwtService = module.get<JwtService>(JwtService);
     configService = module.get<ConfigService>(ConfigService);
+    mailService = module.get<MailService>(MailService);
   });
 
   describe('validateUser', () => {
@@ -114,9 +127,9 @@ describe('AuthService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('nên tạo tài khoản thành công', async () => {
+    it('nên tạo tài khoản kèm OTP và gửi email thành công', async () => {
       userService.getUserByEmail.mockRejectedValue(new NotFoundException());
-      userService.createUser.mockResolvedValue(undefined);
+      userService.createUserWithOtp.mockResolvedValue(undefined);
 
       await service.register({
         email: 'new@ex.com',
@@ -125,7 +138,54 @@ describe('AuthService', () => {
         lastName: 'B',
       });
 
-      expect(userService.createUser).toHaveBeenCalledWith('new@ex.com', 'pass', 'A', 'B');
+      expect(userService.createUserWithOtp).toHaveBeenCalled();
+      expect(mailService.sendVerificationOtp).toHaveBeenCalled();
+    });
+  });
+
+  describe('verifyOtp', () => {
+    it('nên ném NotFoundException nếu email không tồn tại', async () => {
+      userService.getUserByEmailWithOtp.mockResolvedValue(null);
+
+      await expect(
+        service.verifyOtp({ email: 'notfound@ex.com', otp: '123456' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('nên ném BadRequestException nếu tài khoản đã kích hoạt', async () => {
+      userService.getUserByEmailWithOtp.mockResolvedValue({ isActive: true });
+
+      await expect(
+        service.verifyOtp({ email: 'active@ex.com', otp: '123456' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('nên kích hoạt tài khoản thành công nếu OTP đúng', async () => {
+      userService.getUserByEmailWithOtp.mockResolvedValue({
+        _id: 'u1',
+        isActive: false,
+        otpCode: '123456',
+        otpExpired: new Date(Date.now() + 60000),
+      });
+      userService.activateUser.mockResolvedValue(undefined);
+
+      await service.verifyOtp({ email: 'user@ex.com', otp: '123456' });
+      expect(userService.activateUser).toHaveBeenCalledWith('u1');
+    });
+  });
+
+  describe('resendOtp', () => {
+    it('nên gửi lại OTP thành công', async () => {
+      userService.getUserByEmailWithOtp.mockResolvedValue({
+        _id: 'u1',
+        isActive: false,
+        firstName: 'An',
+      });
+      userService.updateOtp.mockResolvedValue(undefined);
+
+      await service.resendOtp({ email: 'user@ex.com' });
+      expect(userService.updateOtp).toHaveBeenCalled();
+      expect(mailService.sendVerificationOtp).toHaveBeenCalled();
     });
   });
 

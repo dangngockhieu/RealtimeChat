@@ -21,6 +21,9 @@ describe('UserController', () => {
     getAllUsesrs: jest.fn(),
     getUserByEmail: jest.fn(),
     getUserById: jest.fn(),
+    uploadAndChangeAvatar: jest.fn(),
+    updateAvatar: jest.fn(),
+    removeAvatar: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -75,5 +78,30 @@ describe('UserController', () => {
     const result = await controller.getUserById(mockUser.id);
     expect(service.getUserById).toHaveBeenCalledWith(mockUser.id);
     expect(result.data).toBeDefined();
+  });
+
+  it('nên gọi uploadAndChangeAvatar khi uploadAvatar', async () => {
+    const mockFile: any = { filename: 'avatar-1.png' };
+    mockUserService.uploadAndChangeAvatar.mockResolvedValue({ id: mockUser.id, avatar: '/public/uploads/avatars/avatar-1.png' });
+
+    const result = await controller.uploadAvatar(mockFile, mockUser);
+    expect(service.uploadAndChangeAvatar).toHaveBeenCalledWith(mockUser.id, mockFile);
+    expect(result.data.avatar).toBe('/public/uploads/avatars/avatar-1.png');
+  });
+
+  it('nên gọi updateAvatar khi updateAvatar', async () => {
+    mockUserService.updateAvatar.mockResolvedValue({ id: mockUser.id, avatar: 'http://avatar.png' });
+
+    const result = await controller.updateAvatar({ avatarUrl: 'http://avatar.png' }, mockUser);
+    expect(service.updateAvatar).toHaveBeenCalledWith(mockUser.id, 'http://avatar.png');
+    expect(result.data.avatar).toBe('http://avatar.png');
+  });
+
+  it('nên gọi removeAvatar khi removeAvatar', async () => {
+    mockUserService.removeAvatar.mockResolvedValue({ id: mockUser.id, avatar: null });
+
+    const result = await controller.removeAvatar(mockUser);
+    expect(service.removeAvatar).toHaveBeenCalledWith(mockUser.id);
+    expect(result.data.avatar).toBeNull();
   });
 });

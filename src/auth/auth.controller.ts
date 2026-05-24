@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginRequestDto, RegisterRequestDto } from './dto/auth.request.dto';
+import { LoginRequestDto, RegisterRequestDto, ResendOtpDto, VerifyOtpDto } from './dto/auth.request.dto';
 import { LocalAuthGuard } from './local/local.guard';
 import { UserAccount, UserLogin } from '../response';
 import { ConfigService } from '@nestjs/config';
@@ -32,13 +32,41 @@ export class AuthController {
   @Public()
   @ApiOperation({
     summary: 'Đăng ký tài khoản mới',
-    description: 'Tạo tài khoản người dùng với email, mật khẩu và họ tên',
+    description: 'Tạo tài khoản người dùng với email, mật khẩu và họ tên, đồng thời gửi mã OTP kích hoạt qua email',
   })
-  @ApiCreatedResponse({ description: 'Đăng ký tài khoản thành công' })
+  @ApiCreatedResponse({ description: 'Đăng ký tài khoản thành công, mã OTP đã được gửi qua email' })
   @ApiBadRequestResponse({ description: 'Dữ liệu đầu vào không hợp lệ hoặc email đã tồn tại' })
-  @ResponseMessage('Đăng ký thành công')
+  @ResponseMessage('Đăng ký tài khoản thành công. Vui lòng kiểm tra email để lấy mã OTP xác thực.')
   async register(@Body() dto: RegisterRequestDto) {
     await this.authService.register(dto);
+    return null;
+  }
+
+  @Post('verify-otp')
+  @Public()
+  @ApiOperation({
+    summary: 'Xác thực OTP kích hoạt tài khoản',
+    description: 'Nhập email và mã OTP 6 số để kích hoạt tài khoản (isActive: true)',
+  })
+  @ApiOkResponse({ description: 'Xác thực tài khoản thành công' })
+  @ApiBadRequestResponse({ description: 'Mã OTP không chính xác hoặc đã hết hạn' })
+  @ResponseMessage('Xác thực tài khoản thành công. Bây giờ bạn có thể đăng nhập.')
+  async verifyOtp(@Body() dto: VerifyOtpDto) {
+    await this.authService.verifyOtp(dto);
+    return null;
+  }
+
+  @Post('resend-otp')
+  @Public()
+  @ApiOperation({
+    summary: 'Gửi lại mã OTP kích hoạt',
+    description: 'Tạo mã OTP mới và gửi lại vào email của người dùng',
+  })
+  @ApiOkResponse({ description: 'Gửi lại mã OTP thành công' })
+  @ApiBadRequestResponse({ description: 'Tài khoản đã kích hoạt hoặc không tồn tại' })
+  @ResponseMessage('Mã OTP mới đã được gửi vào email của bạn.')
+  async resendOtp(@Body() dto: ResendOtpDto) {
+    await this.authService.resendOtp(dto);
     return null;
   }
 

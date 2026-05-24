@@ -26,6 +26,9 @@ export class Conversation {
     @Prop({ type: String, default: null })
     name: string | null;
 
+    @Prop({ type: String, default: null })
+    avatar: string | null;
+
     @Prop({ type: Boolean, default: false })
     joinByLink: boolean;
 

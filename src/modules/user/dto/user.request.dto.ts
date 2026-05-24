@@ -57,3 +57,13 @@ export class UpdateUserDto {
   @IsNotEmpty({ message: 'LastName không được để trống nếu đã truyền lên' })
   lastName?: string;
 }
+
+export class UpdateAvatarDto {
+  @ApiProperty({
+    example: 'http://localhost:3000/public/uploads/avatar.png',
+    description: 'Đường dẫn URL ảnh đại diện mới',
+  })
+  @IsString({ message: 'avatarUrl phải là một chuỗi' })
+  @IsNotEmpty({ message: 'avatarUrl không được để trống' })
+  avatarUrl: string;
+}

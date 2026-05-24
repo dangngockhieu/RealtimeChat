@@ -48,3 +48,13 @@ export class UpdateGroupNameDto {
   @IsNotEmpty({ message: 'Tên nhóm không được để trống' })
   name: string;
 }
+
+export class UpdateGroupAvatarDto {
+  @ApiProperty({
+    example: 'http://localhost:3000/public/uploads/group.png',
+    description: 'Đường dẫn URL ảnh đại diện nhóm mới',
+  })
+  @IsString({ message: 'avatarUrl phải là một chuỗi' })
+  @IsNotEmpty({ message: 'avatarUrl không được để trống' })
+  avatarUrl: string;
+}

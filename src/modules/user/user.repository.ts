@@ -94,4 +94,52 @@ export class UserRepository {
             { $set: { refreshToken: hashedRefreshToken } }
         ).exec();
     }
+
+    // Tạo người dùng kèm mã OTP
+    async createUserWithOtp(
+        email: string,
+        hashedPassword: string,
+        firstName: string,
+        lastName: string,
+        otpCode: string,
+        otpExpired: Date,
+    ) {
+        return this.userModel.create({
+            email,
+            password: hashedPassword,
+            firstName,
+            lastName,
+            otpCode,
+            otpExpired,
+            isActive: false,
+        });
+    }
+
+    // Tìm kiếm người dùng kèm OTP code và hạn OTP
+    async findByEmailWithOtp(email: string) {
+        return this.userModel.findOne({ email }).select('+otpCode +otpExpired').lean().exec();
+    }
+
+    // Kích hoạt tài khoản người dùng
+    async activateUser(userId: string) {
+        await this.userModel.findByIdAndUpdate(userId, {
+            $set: { isActive: true, otpCode: null, otpExpired: null },
+        }).exec();
+    }
+
+    // Cập nhật lại mã OTP
+    async updateOtp(userId: string, otpCode: string, otpExpired: Date) {
+        await this.userModel.findByIdAndUpdate(userId, {
+            $set: { otpCode, otpExpired },
+        }).exec();
+    }
+
+    // Cập nhật ảnh đại diện (avatar)
+    async updateAvatar(userId: string, avatarUrl: string | null) {
+        return this.userModel.findByIdAndUpdate(
+            userId,
+            { $set: { avatar: avatarUrl } },
+            { returnDocument: 'after' },
+        ).select('-password').lean().exec();
+    }
 }

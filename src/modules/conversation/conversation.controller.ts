@@ -5,6 +5,7 @@ import { UserAccount } from '../../response';
 import {
   CreateDirectChatDto,
   CreateGroupChatDto,
+  UpdateGroupAvatarDto,
   UpdateGroupNameDto,
 } from './dto/conversation.request.dto';
 import { ResponseMessage } from '../../auth/decorator/customize.decorator';
@@ -122,6 +123,25 @@ export class ConversationController {
     @Body() dto: UpdateGroupNameDto,
   ) {
     await this.conversationService.updateGroupName(id, user.id, dto.name);
+    return null;
+  }
+
+  @Patch(':id/avatar')
+  @ApiOperation({
+    summary: 'Đổi ảnh đại diện nhóm chat',
+    description: 'Chỉ Quản trị viên (ADMIN) hoặc Trưởng nhóm (OWNER) mới có quyền đổi avatar nhóm',
+  })
+  @ApiParam({ name: 'id', required: true, example: '65f1a2b3c4d5e6f7a8b9c0d1', description: 'ID cuộc trò chuyện nhóm' })
+  @ApiOkResponse({ description: 'Đổi ảnh đại diện nhóm thành công' })
+  @ApiForbiddenResponse({ description: 'Không có quyền đổi ảnh đại diện nhóm' })
+  @ApiBadRequestResponse({ description: 'Thao tác chỉ áp dụng cho nhóm chat' })
+  @ResponseMessage('Đổi ảnh đại diện nhóm thành công.')
+  async updateGroupAvatar(
+    @User() user: UserAccount,
+    @Param('id') id: string,
+    @Body() dto: UpdateGroupAvatarDto,
+  ) {
+    await this.conversationService.updateGroupAvatar(id, user.id, dto.avatarUrl);
     return null;
   }
 

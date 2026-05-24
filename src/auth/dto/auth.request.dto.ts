@@ -55,3 +55,31 @@ export class RegisterRequestDto {
   @IsString({ message: 'LastName phải là một chuỗi' })
   lastName: string;
 }
+
+export class VerifyOtpDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'Email tài khoản cần xác thực OTP',
+  })
+  @IsEmail({}, { message: 'Email không hợp lệ' })
+  @IsNotEmpty({ message: 'Email không được để trống' })
+  email: string;
+
+  @ApiProperty({
+    example: '123456',
+    description: 'Mã OTP gồm 6 chữ số đã được gửi qua email',
+  })
+  @IsNotEmpty({ message: 'Mã OTP không được để trống' })
+  @IsString({ message: 'Mã OTP phải là một chuỗi' })
+  otp: string;
+}
+
+export class ResendOtpDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'Email tài khoản cần gửi lại mã OTP',
+  })
+  @IsEmail({}, { message: 'Email không hợp lệ' })
+  @IsNotEmpty({ message: 'Email không được để trống' })
+  email: string;
+}

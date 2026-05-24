@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals';
+
 jest.mock('api-query-params', () => () => ({ filter: {}, sort: {}, projection: {}, population: {} }));
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -10,11 +12,13 @@ describe('AuthController', () => {
   let controller: AuthController;
   let service: AuthService;
 
-  const mockAuthService = {
+  const mockAuthService: any = {
     register: jest.fn(),
     login: jest.fn(),
     logout: jest.fn(),
     refreshTokens: jest.fn(),
+    verifyOtp: jest.fn(),
+    resendOtp: jest.fn(),
   };
 
   const mockConfigService = {
@@ -85,6 +89,24 @@ describe('AuthController', () => {
     const result = await controller.logout(mockReq, mockRes);
     expect(service.logout).toHaveBeenCalledWith(mockUser.id);
     expect(mockRes.clearCookie).toHaveBeenCalled();
+    expect(result).toBeNull();
+  });
+
+  it('nên gọi verifyOtp', async () => {
+    mockAuthService.verifyOtp.mockResolvedValue(undefined);
+    const dto = { email: 'test@ex.com', otp: '123456' };
+
+    const result = await controller.verifyOtp(dto);
+    expect(service.verifyOtp).toHaveBeenCalledWith(dto);
+    expect(result).toBeNull();
+  });
+
+  it('nên gọi resendOtp', async () => {
+    mockAuthService.resendOtp.mockResolvedValue(undefined);
+    const dto = { email: 'test@ex.com' };
+
+    const result = await controller.resendOtp(dto);
+    expect(service.resendOtp).toHaveBeenCalledWith(dto);
     expect(result).toBeNull();
   });
 });

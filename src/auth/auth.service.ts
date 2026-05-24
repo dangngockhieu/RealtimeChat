@@ -1,11 +1,12 @@
-import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../modules/user/user.service';
 import * as argon from "argon2";
 import { UserLogin } from '../response';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { RegisterRequestDto } from './dto/auth.request.dto';
+import { RegisterRequestDto, ResendOtpDto, VerifyOtpDto } from './dto/auth.request.dto';
 import { createHash } from 'crypto';
+import { MailService } from '../modules/mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +14,7 @@ export class AuthService {
         private userService: UserService,
         private jwt: JwtService,
         private config: ConfigService,
+        private mailService: MailService,
     ) {}
 
     private hashToken512(token: string): string {
@@ -80,7 +82,48 @@ export class AuthService {
         if (existingUser) {
             throw new ForbiddenException('Email đã được sử dụng');
         }
-        await this.userService.createUser(dto.email, dto.password, dto.firstName, dto.lastName);
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpired = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
+
+        await this.userService.createUserWithOtp(
+            dto.email,
+            dto.password,
+            dto.firstName,
+            dto.lastName,
+            otpCode,
+            otpExpired,
+        );
+
+        await this.mailService.sendVerificationOtp(dto.email, otpCode, dto.firstName);
+    }
+
+    async verifyOtp(dto: VerifyOtpDto): Promise<void> {
+        const user = await this.userService.getUserByEmailWithOtp(dto.email);
+        if (!user) {
+            throw new NotFoundException('Không tìm thấy tài khoản với email này');
+        }
+        if (user.isActive) {
+            throw new BadRequestException('Tài khoản đã được kích hoạt trước đó');
+        }
+        if (!user.otpCode || user.otpCode !== dto.otp || !user.otpExpired || new Date() > new Date(user.otpExpired)) {
+            throw new BadRequestException('Mã OTP không chính xác hoặc đã hết hạn');
+        }
+        await this.userService.activateUser(user._id.toString());
+    }
+
+    async resendOtp(dto: ResendOtpDto): Promise<void> {
+        const user = await this.userService.getUserByEmailWithOtp(dto.email);
+        if (!user) {
+            throw new NotFoundException('Không tìm thấy tài khoản với email này');
+        }
+        if (user.isActive) {
+            throw new BadRequestException('Tài khoản đã được kích hoạt');
+        }
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpired = new Date(Date.now() + 5 * 60 * 1000);
+
+        await this.userService.updateOtp(user._id.toString(), otpCode, otpExpired);
+        await this.mailService.sendVerificationOtp(dto.email, otpCode, user.firstName || 'bạn');
     }
 
     async login(user: UserLogin): Promise<{ accessToken: string; refreshToken: string }> {

@@ -26,6 +26,9 @@ export class User {
     })
     role: string;
 
+    @Prop({ type: String, default: null })
+    avatar: string | null;
+
     @Prop({ default: false })
     isActive: boolean;
 

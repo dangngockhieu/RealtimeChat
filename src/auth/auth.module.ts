@@ -8,13 +8,15 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '../modules/user/schemas/user.schema';
 import { JwtStrategy } from './jwt/jwt.strategy';
+import { MailModule } from '../modules/mail/mail.module';
 
 @Module({
   imports: [
       UserModule,
       PassportModule,
       JwtModule.register({}),
-      MongooseModule.forFeature([{ name: User.name, schema: UserSchema }])
+      MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+      MailModule,
   ],
   controllers: [AuthController],
   providers: [

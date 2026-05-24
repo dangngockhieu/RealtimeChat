@@ -1,12 +1,27 @@
-import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UserService } from './user.service';
-import { ChangePasswordDto, UpdateUserDto } from './dto/user.request.dto';
+import { ChangePasswordDto, UpdateAvatarDto, UpdateUserDto } from './dto/user.request.dto';
 import { User } from '../../auth/decorator/user.decorator';
 import { UserAccount } from '../../response';
 import { Public, ResponseMessage } from '../../auth/decorator/customize.decorator';
+import { avatarStorage, imageFileFilter } from '../upload/upload.controller';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -52,6 +67,69 @@ export class UserController {
     return {
       data: userUpdated,
     };
+  }
+
+  @Post('avatar')
+  @ApiOperation({
+    summary: 'Tải lên và thay đổi ảnh đại diện cá nhân',
+    description: 'Tải lên file ảnh mới, tự động xóa avatar cũ trên server nếu có và cập nhật avatar mới cho tài khoản',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Tệp hình ảnh avatar (JPG, PNG, GIF, WEBP, tối đa 5MB)',
+        },
+      },
+    },
+  })
+  @ApiOkResponse({ description: 'Cập nhật ảnh đại diện thành công' })
+  @ApiBadRequestResponse({ description: 'File không hợp lệ hoặc không có file tải lên' })
+  @ApiNotFoundResponse({ description: 'Không tìm thấy người dùng' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: avatarStorage,
+      fileFilter: imageFileFilter,
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    }),
+  )
+  @ResponseMessage('Cập nhật ảnh đại diện thành công')
+  async uploadAvatar(
+    @UploadedFile() file: Express.Multer.File,
+    @User() user: UserAccount,
+  ) {
+    const data = await this.userService.uploadAndChangeAvatar(user.id, file);
+    return { data };
+  }
+
+  @Patch('avatar')
+  @ApiOperation({
+    summary: 'Cập nhật ảnh đại diện cá nhân bằng URL',
+    description: 'Cập nhật đường dẫn avatar mới cho người dùng hiện tại, tự động xóa file avatar cũ trên server nếu có',
+  })
+  @ApiOkResponse({ description: 'Cập nhật ảnh đại diện thành công' })
+  @ApiNotFoundResponse({ description: 'Không tìm thấy người dùng' })
+  @ResponseMessage('Cập nhật ảnh đại diện thành công')
+  async updateAvatar(@Body() dto: UpdateAvatarDto, @User() user: UserAccount) {
+    const data = await this.userService.updateAvatar(user.id, dto.avatarUrl);
+    return { data };
+  }
+
+  @Delete('avatar')
+  @ApiOperation({
+    summary: 'Gỡ ảnh đại diện cá nhân',
+    description: 'Gỡ bỏ ảnh đại diện (set avatar về null), tự động xóa file avatar cũ trên server nếu có',
+  })
+  @ApiOkResponse({ description: 'Gỡ ảnh đại diện thành công' })
+  @ApiNotFoundResponse({ description: 'Không tìm thấy người dùng' })
+  @ResponseMessage('Gỡ ảnh đại diện thành công')
+  async removeAvatar(@User() user: UserAccount) {
+    const data = await this.userService.removeAvatar(user.id);
+    return { data };
   }
 
   @Get('paginate')
