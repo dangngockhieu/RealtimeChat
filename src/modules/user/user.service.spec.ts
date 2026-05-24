@@ -7,6 +7,7 @@ import { UserRepository } from './user.repository';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import * as argon from 'argon2';
 import { UploadService } from '../upload/upload.service';
+import { RedisService } from '../redis/redis.service';
 
 describe('UserService', () => {
   let service: UserService;
@@ -41,6 +42,14 @@ describe('UserService', () => {
             processAvatarFile: jest.fn(),
             processMultipleFiles: jest.fn(),
             deleteFileByUrl: jest.fn(),
+          },
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue(undefined),
+            del: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
@@ -121,6 +130,16 @@ describe('UserService', () => {
       const result = await service.getUserById(mockUserId);
       expect(result).toBeDefined();
       expect(result.email).toBe('test@ex.com');
+    });
+
+    it('nên trả về dữ liệu từ cache nếu có sẵn', async () => {
+      const cachedUser: any = { id: mockUserId, email: 'cached@ex.com', firstName: 'Cached' };
+      const redisService = (service as any).redisService;
+      redisService.get.mockResolvedValueOnce(cachedUser);
+
+      const result = await service.getUserById(mockUserId);
+      expect(result).toEqual(cachedUser);
+      expect(repository.findById).not.toHaveBeenCalled();
     });
   });
 

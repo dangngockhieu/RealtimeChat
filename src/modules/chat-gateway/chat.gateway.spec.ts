@@ -8,6 +8,7 @@ import { MemberService } from '../member/member.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Member } from '../member/schemas/member.schema';
 import { Types } from 'mongoose';
+import { RedisService } from '../redis/redis.service';
 
 describe('ChatGateway', () => {
   let gateway: ChatGateway;
@@ -23,6 +24,13 @@ describe('ChatGateway', () => {
   const mockServer = {
     emit: jest.fn(),
     to: jest.fn().mockReturnThis(),
+  };
+
+  const mockRedisService: any = {
+    addUserSocket: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+    removeUserSocket: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+    isUserOnline: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+    getOnlineUserIds: jest.fn<() => Promise<string[]>>().mockResolvedValue([mockUserId]),
   };
 
   beforeEach(async () => {
@@ -53,6 +61,10 @@ describe('ChatGateway', () => {
           useValue: {
             markAsRead: jest.fn(),
           },
+        },
+        {
+          provide: RedisService,
+          useValue: mockRedisService,
         },
         {
           provide: getModelToken(Member.name),
@@ -121,17 +133,26 @@ describe('ChatGateway', () => {
   });
 
   describe('handleDisconnect', () => {
-    it('nên phát user_offline khi socket cuối cùng ngắt kết nối', () => {
-      // Giả lập user đã kết nối với socket1
-      (gateway as any).addUserSocket(mockUserId, 'socket1');
+    it('nên phát user_offline khi socket cuối cùng ngắt kết nối', async () => {
+      mockRedisService.removeUserSocket.mockResolvedValue(true);
 
       const mockClient: any = {
         id: 'socket1',
         data: { user: { sub: mockUserId } },
       };
 
-      gateway.handleDisconnect(mockClient);
+      await gateway.handleDisconnect(mockClient);
+      expect(mockRedisService.removeUserSocket).toHaveBeenCalledWith(mockUserId, 'socket1');
       expect(mockServer.emit).toHaveBeenCalledWith('user_offline', { userId: mockUserId });
+    });
+  });
+
+  describe('handleCheckOnline', () => {
+    it('nên trả về danh sách onlineUserIds từ redisService', async () => {
+      const mockClient: any = {};
+      const result = await gateway.handleCheckOnline(mockClient, { userIds: [mockUserId] });
+      expect(mockRedisService.getOnlineUserIds).toHaveBeenCalledWith([mockUserId]);
+      expect(result.onlineUserIds).toEqual([mockUserId]);
     });
   });
 

@@ -10,10 +10,15 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { RedisIoAdapter } from './modules/chat-gateway/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+
+  const redisIoAdapter = new RedisIoAdapter(app, configService);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   app.useStaticAssets(join(__dirname, '..', 'public'), {
     prefix: '/public/',

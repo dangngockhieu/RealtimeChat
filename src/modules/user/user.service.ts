@@ -6,12 +6,14 @@ import { plainToInstance } from 'class-transformer';
 import { PaginateResponse, UserResponseDto, UserValidatorDto, UserWithRefreshTokenDto } from '../../response';
 import { UserRepository } from './user.repository';
 import { UploadService } from '../upload/upload.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class UserService {
     constructor(
         private readonly userRepository: UserRepository,
         private readonly uploadService: UploadService,
+        private readonly redisService: RedisService,
     ) {}
 
     // Đổi mật khẩu cho người dùng
@@ -29,6 +31,7 @@ export class UserService {
         }
         const hashedPassword = await argon.hash(dto.newPassword);
         await this.userRepository.updatePassword(userId, hashedPassword);
+        await this.redisService.del(`user:profile:${userId}`);
     }
 
     // Cập nhật thông tin cá nhân của người dùng
@@ -39,20 +42,32 @@ export class UserService {
             throw new NotFoundException('Không tìm thấy người dùng để cập nhật');
         }
 
+        await this.redisService.del(`user:profile:${userId}`);
+
         return plainToInstance(UserResponseDto, updatedUser, {
             excludeExtraneousValues: true,
         });
     }
 
-    // Lấy thông tin người dùng theo ID
+    // Lấy thông tin người dùng theo ID (hỗ trợ Redis Caching)
     async getUserById(userId: string): Promise<UserResponseDto> {
+        const cacheKey = `user:profile:${userId}`;
+        const cached = await this.redisService.get<UserResponseDto>(cacheKey);
+        if (cached) {
+            return cached;
+        }
+
         const user = await this.userRepository.findById(userId);
         if (!user) {
             throw new NotFoundException('User not found');
         }
-        return plainToInstance(UserResponseDto, user, {
+
+        const userDto = plainToInstance(UserResponseDto, user, {
             excludeExtraneousValues: true,
         });
+
+        await this.redisService.set(cacheKey, userDto, 300); // Cache 5 phút
+        return userDto;
     }
 
     // Lấy thông tin người dùng theo ID, bao gồm refreshToken (dành cho xác thực)
@@ -167,6 +182,7 @@ export class UserService {
         }
 
         const updatedUser = await this.userRepository.updateAvatar(userId, avatarUrl);
+        await this.redisService.del(`user:profile:${userId}`);
         return plainToInstance(UserResponseDto, updatedUser, {
             excludeExtraneousValues: true,
         });
@@ -192,6 +208,7 @@ export class UserService {
 
         const newAvatarUrl = `/public/uploads/avatars/${file.filename}`;
         const updatedUser = await this.userRepository.updateAvatar(userId, newAvatarUrl);
+        await this.redisService.del(`user:profile:${userId}`);
         return plainToInstance(UserResponseDto, updatedUser, {
             excludeExtraneousValues: true,
         });
@@ -210,6 +227,7 @@ export class UserService {
         }
 
         const updatedUser = await this.userRepository.updateAvatar(userId, null);
+        await this.redisService.del(`user:profile:${userId}`);
         return plainToInstance(UserResponseDto, updatedUser, {
             excludeExtraneousValues: true,
         });

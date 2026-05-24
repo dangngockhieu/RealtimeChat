@@ -14,6 +14,7 @@ import { MessageModule } from './modules/message/message.module';
 import { ChatGatewayModule } from './modules/chat-gateway/chat-gateway.module';
 import { MailModule } from './modules/mail/mail.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { RedisModule } from './modules/redis/redis.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { UploadModule } from './modules/upload/upload.module';
       }),
       inject: [ConfigService],
     }),
+    RedisModule,
     UserModule,
     AuthModule,
     FriendshipModule,

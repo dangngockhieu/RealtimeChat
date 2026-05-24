@@ -19,6 +19,7 @@ import { MessageService } from '../message/message.service';
 import { MemberService } from '../member/member.service';
 import { SendMessageDto } from '../message/dto/message.request.dto';
 import { MarkAsReadDto } from '../member/dto/member.request.dto';
+import { RedisService } from '../redis/redis.service';
 
 interface JwtPayload {
   sub: string;
@@ -40,14 +41,12 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   private readonly logger = new Logger(ChatGateway.name);
 
-  // Lưu trữ danh sách socketId theo từng userId: Map<userId, Set<socketId>>
-  private readonly userSocketsMap = new Map<string, Set<string>>();
-
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly messageService: MessageService,
     private readonly memberService: MemberService,
+    private readonly redisService: RedisService,
     @InjectModel(Member.name) private readonly memberModel: Model<MemberDocument>,
   ) {}
 
@@ -73,7 +72,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       client.data.user = payload;
       const userId = payload.sub;
 
-      const isFirstConnection = this.addUserSocket(userId, client.id);
+      const isFirstConnection = await this.redisService.addUserSocket(userId, client.id);
 
       // Join room cá nhân của user (để nhận thông báo, lời mời kết bạn,...)
       await client.join(`user_${userId}`);
@@ -103,10 +102,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   // Quản lý ngắt kết nối
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     const userId = client.data?.user?.sub;
     if (userId) {
-      const isCompletelyOffline = this.removeUserSocket(userId, client.id);
+      const isCompletelyOffline = await this.redisService.removeUserSocket(userId, client.id);
       this.logger.log(`Socket ${client.id} của User ${userId} đã ngắt kết nối`);
 
       // Nếu user không còn kết nối nào khác trên các tab/thiết bị
@@ -230,35 +229,20 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     this.server?.to(`user_${userId}`).emit(event, data);
   }
 
-  isUserOnline(userId: string): boolean {
-    const sockets = this.userSocketsMap.get(userId);
-    return !!(sockets && sockets.size > 0);
+  async isUserOnline(userId: string): Promise<boolean> {
+    return this.redisService.isUserOnline(userId);
   }
 
-  // ==================== QUẢN LÝ USER PRESENCE TRONG BỘ NHỚ ====================
+  // ==================== TRUY VẤN TRẠNG THÁI ONLINE ====================
 
-  private addUserSocket(userId: string, socketId: string): boolean {
-    let sockets = this.userSocketsMap.get(userId);
-    let isFirst = false;
-    if (!sockets) {
-      sockets = new Set<string>();
-      this.userSocketsMap.set(userId, sockets);
-      isFirst = true;
-    }
-    sockets.add(socketId);
-    return isFirst;
-  }
-
-  private removeUserSocket(userId: string, socketId: string): boolean {
-    const sockets = this.userSocketsMap.get(userId);
-    if (!sockets) return true;
-
-    sockets.delete(socketId);
-    if (sockets.size === 0) {
-      this.userSocketsMap.delete(userId);
-      return true; // Hoàn toàn offline
-    }
-    return false;
+  @SubscribeMessage('check_online')
+  async handleCheckOnline(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { userIds: string[] },
+  ) {
+    const userIds = Array.isArray(data?.userIds) ? data.userIds : [];
+    const onlineUserIds = await this.redisService.getOnlineUserIds(userIds);
+    return { onlineUserIds };
   }
 
   private extractTokenFromSocket(client: Socket): string | null {
