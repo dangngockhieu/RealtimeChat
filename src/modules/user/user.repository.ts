@@ -84,7 +84,19 @@ export class UserRepository {
                 password: hashedPassword,
                 firstName: firstName,
                 lastName: lastName
-        });;
+        });
+    }
+
+    // Tạo tài khoản Quản trị viên (Admin) mặc định
+    async createAdminUser(email: string, hashedPassword: string, firstName: string, lastName: string) {
+        return this.userModel.create({
+            email,
+            password: hashedPassword,
+            firstName,
+            lastName,
+            role: 'ADMIN',
+            isActive: true,
+        });
     }
 
     // Find user by ID and update refresh token

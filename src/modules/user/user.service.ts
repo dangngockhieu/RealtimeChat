@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { ChangePasswordDto, UpdateUserDto} from './dto/user.request.dto';
 import * as argon from "argon2";
 import aqp from 'api-query-params';
@@ -9,12 +9,38 @@ import { UploadService } from '../upload/upload.service';
 import { RedisService } from '../redis/redis.service';
 
 @Injectable()
-export class UserService {
+export class UserService implements OnModuleInit {
+    private readonly logger = new Logger(UserService.name);
+
     constructor(
         private readonly userRepository: UserRepository,
         private readonly uploadService: UploadService,
         private readonly redisService: RedisService,
     ) {}
+
+    async onModuleInit() {
+        await this.seedAdminUser();
+    }
+
+    // Tự động seed tài khoản Admin nếu chưa tồn tại
+    async seedAdminUser(): Promise<void> {
+        try {
+            const adminEmail = 'admin@gmail.com';
+            const existingAdmin = await this.userRepository.findByEmail(adminEmail);
+            if (!existingAdmin) {
+                const hashedPassword = await argon.hash('123456');
+                await this.userRepository.createAdminUser(
+                    adminEmail,
+                    hashedPassword,
+                    'Admin',
+                    'System',
+                );
+                this.logger.log(`Tài khoản Admin mặc định (${adminEmail}) đã được tạo tự động thành công.`);
+            }
+        } catch (error: any) {
+            this.logger.warn(`Không thể tự động seed Admin: ${error?.message || error}`);
+        }
+    }
 
     // Đổi mật khẩu cho người dùng
     async updatePassword(userId: string, dto: ChangePasswordDto): Promise<void> {

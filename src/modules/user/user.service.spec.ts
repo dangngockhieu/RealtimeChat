@@ -33,6 +33,7 @@ describe('UserService', () => {
             createUser: jest.fn(),
             updateRefreshToken: jest.fn(),
             updateAvatar: jest.fn(),
+            createAdminUser: jest.fn(),
           },
         },
         {
@@ -217,6 +218,34 @@ describe('UserService', () => {
       expect(uploadService.deleteFileByUrl).toHaveBeenCalledWith('/public/uploads/avatars/to-delete.jpg');
       expect(repository.updateAvatar).toHaveBeenCalledWith(mockUserId, null);
       expect(result.avatar).toBeNull();
+    });
+  });
+
+  describe('seedAdminUser', () => {
+    it('nên tạo tài khoản Admin nếu admin@gmail.com chưa tồn tại', async () => {
+      repository.findByEmail.mockResolvedValue(null);
+      (argon.hash as jest.Mock).mockResolvedValue('hashed123456');
+      repository.createAdminUser.mockResolvedValue({ _id: 'admin-id' });
+
+      await service.seedAdminUser();
+
+      expect(repository.findByEmail).toHaveBeenCalledWith('admin@gmail.com');
+      expect(argon.hash).toHaveBeenCalledWith('123456');
+      expect(repository.createAdminUser).toHaveBeenCalledWith(
+        'admin@gmail.com',
+        'hashed123456',
+        'Admin',
+        'System',
+      );
+    });
+
+    it('không nên tạo tài khoản Admin nếu admin@gmail.com đã tồn tại', async () => {
+      repository.findByEmail.mockResolvedValue({ _id: 'existing-admin', email: 'admin@gmail.com' });
+
+      await service.seedAdminUser();
+
+      expect(repository.findByEmail).toHaveBeenCalledWith('admin@gmail.com');
+      expect(repository.createAdminUser).not.toHaveBeenCalled();
     });
   });
 });
