@@ -9,6 +9,8 @@ import {
 } from '../controllers/user.controller';
 import { authenticate, authorize } from '../middlewares/auth';
 import { Role } from '../schemas/user.schema';
+import { validateDto } from '../middlewares/validate/validate.dto';
+import { ChangePasswordDto, UpdateUserDto } from '../dtos/request/user.dto';
 
 const router = Router();
 
@@ -18,10 +20,10 @@ const userRoutes = (app: Express) => {
   router.get('/profile', authenticate, getProfile);
 
   // Đổi mật khẩu
-  router.put('/change-password', authenticate, changePassword);
+  router.put('/change-password', authenticate, validateDto(ChangePasswordDto), changePassword);
 
   // Cập nhật profile
-  router.put('/profile', authenticate, updateProfile);
+  router.put('/profile', authenticate, validateDto(UpdateUserDto), updateProfile);
 
   // ==================== ADMIN ONLY ====================
 

@@ -2,9 +2,10 @@ import { Request, Response } from 'express';
 import { registerUser, loginUser, logoutUser, refreshTokensService } from '../services/auth.service';
 import { BadRequestException } from '../middlewares/formatResponse/exception/customException';
 import { UserAccount, UserLogin } from '../dtos/response/auth.interface';
+import { RegisterRequestDto } from '../dtos/request/auth.dto';
 
 export const register = async (req: Request, res: Response) => {
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password, firstName, lastName } = req.body as RegisterRequestDto;
     await registerUser(email, password, firstName, lastName);
     res.customSuccess(null, 'Đăng ký thành công');
 };

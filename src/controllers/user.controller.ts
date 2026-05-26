@@ -8,16 +8,19 @@ import {
 } from '../services/user.service';
 import { BadRequestException } from '../middlewares/formatResponse/exception/customException';
 import { UserAccount } from '../dtos/response/auth.interface';
+import { ChangePasswordDto, UpdateUserDto } from '../dtos/request/user.dto';
 
 export const changePassword = async (req: Request, res: Response) => {
   const user = req.user as UserAccount;
-  await updatePasswordService(user.id, req.body);
+  const body = req.body as ChangePasswordDto;
+  await updatePasswordService(user.id, body);
   res.customSuccess(null, 'Đổi mật khẩu thành công');
 };
 
 export const updateProfile = async (req: Request, res: Response) => {
   const user = req.user as UserAccount;
-  const data = await updateUserProfileService(user.id, req.body);
+  const body = req.body as UpdateUserDto;
+  const data = await updateUserProfileService(user.id, body);
   res.customSuccess(data, 'Cập nhật hồ sơ thành công');
 };
 
