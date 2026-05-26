@@ -99,15 +99,3 @@ export const createUser = async (email: string, password: string, firstName: str
 export const updateRefreshToken = async (userId: string, refreshToken: string | null): Promise<void> => {
     await updateRefreshTokenRepository(userId, refreshToken);
 };
-
-export default {
-    updatePassword,
-    updateUserProfile,
-    getUserById,
-    getUserByEmail,
-    getUserByEmailWithPassword,
-    getUserWithRefreshTokenById,
-    getAllUsers,
-    createUser,
-    updateRefreshToken,
-};

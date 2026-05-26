@@ -76,17 +76,3 @@ export const updateRefreshToken = async (userId: string, hashedRefreshToken: str
         { $set: { refreshToken: hashedRefreshToken } })
         .exec();
 };
-
-export default {
-    findByIdWithPassword,
-    updatePassword,
-    updateProfile,
-    findById,
-    findByIdWithRefreshToken,
-    findByEmail,
-    findByEmailWithPassword,
-    findAll,
-    count,
-    createUser,
-    updateRefreshToken,
-};
