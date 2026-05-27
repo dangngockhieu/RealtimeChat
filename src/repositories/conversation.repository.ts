@@ -59,3 +59,8 @@ export const findConversationsByUserId = async (limit: number, filter: any) => {
     .limit(limit + 1)
     .lean();
 }
+
+// Thay đổi privacy của cuộc trò chuyện
+export const changeConversationPrivacy = async (conversationId: string, privacy: ConversationPrivacy) => {
+    await Conversation.findByIdAndUpdate(conversationId, { privacy }, { new: true }).exec();
+}

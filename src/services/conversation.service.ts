@@ -3,9 +3,9 @@ import { CreateGroupChatDto } from "../dtos/request/conversation.dto";
 import { ConversationDetailResponseDto, ConversationSummaryResponseDto } from "../dtos/response/conversation.dto";
 import { InternalServerException } from "../middlewares/formatResponse/exception/customException";
 import {
+    changeConversationPrivacy,
     createConversation,
     createDirectConversation,
-    findConversationById,
     findConversationsByUserId,
     findDirectConversation
 } from "../repositories/conversation.repository";
@@ -13,6 +13,7 @@ import {
     currentUserMemberInfo,
     findConversationIdsByUserId,
     findMembersByConversationId,
+    findMyMemberInfo,
     insertDirectChatMembers,
     insertManyUserToConversation,
     MemberWithUser
@@ -149,4 +150,16 @@ export const getMyConversationsService = async (userId: string, limit=20, cursor
                 hasNextPage
             }
         };
+}
+
+// Thay đổi privacy của cuộc trò chuyện
+export const changeConversationPrivacyService = async (userId: string, conversationId: string, privacy: ConversationPrivacy): Promise<void> => {
+    const currentUser = await findMyMemberInfo(conversationId, userId);
+    if (!currentUser) {
+        throw InternalServerException('Bạn không phải là thành viên của cuộc trò chuyện này');
+    }
+    if (currentUser.role === MemberRole.MEMBER) {
+        throw InternalServerException('Bạn không có quyền thay đổi privacy của cuộc trò chuyện này');
+    }
+    await changeConversationPrivacy(conversationId, privacy);
 }

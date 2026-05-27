@@ -1,4 +1,4 @@
-import { ArrayMinSize, IsArray, IsMongoId, IsNotEmpty, IsString } from "class-validator";
+import { ArrayMinSize, IsArray, IsEnum, IsMongoId, IsNotEmpty, IsString } from "class-validator";
 import { ConversationPrivacy} from "../../schemas/conversation.schema";
 
 export class CreateDirectChatDto {
@@ -14,10 +14,18 @@ export class CreateGroupChatDto {
 
     @IsString()
     @IsNotEmpty()
+    @IsEnum(ConversationPrivacy)
     privacy: ConversationPrivacy;
 
     @IsArray()
     @IsMongoId({ each: true })
     @ArrayMinSize(2)
     participantIds: string[];
+}
+
+export class ChangeConversationPrivacyDto {
+    @IsString()
+    @IsNotEmpty()
+    @IsEnum(ConversationPrivacy)
+    privacy: ConversationPrivacy;
 }
