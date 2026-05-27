@@ -10,6 +10,7 @@ import { BadRequestException } from '../middlewares/formatResponse/exception/cus
 import { UserAccount } from '../dtos/response/auth.interface';
 import { ChangePasswordDto, UpdateUserDto } from '../dtos/request/user.dto';
 
+// Thay đổi mật khẩu người dùng
 export const changePassword = async (req: Request, res: Response) => {
   const user = req.user as UserAccount;
   const body = req.body as ChangePasswordDto;
@@ -17,6 +18,7 @@ export const changePassword = async (req: Request, res: Response) => {
   res.customSuccess(null, 'Đổi mật khẩu thành công');
 };
 
+// Cập nhật hồ sơ người dùng
 export const updateProfile = async (req: Request, res: Response) => {
   const user = req.user as UserAccount;
   const body = req.body as UpdateUserDto;
@@ -24,6 +26,7 @@ export const updateProfile = async (req: Request, res: Response) => {
   res.customSuccess(data, 'Cập nhật hồ sơ thành công');
 };
 
+// Lấy danh sách tất cả người dùng
 export const getAllUsers = async (req: Request, res: Response) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
@@ -37,6 +40,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
   res.customSuccess(result, 'Lấy danh sách người dùng thành công');
 };
 
+// Lấy người dùng theo email
 export const getUserByEmail = async (req: Request, res: Response) => {
   const email = req.query.email as string;
   if (!email) {
@@ -50,10 +54,12 @@ export const getUserByEmail = async (req: Request, res: Response) => {
   res.customSuccess(data, 'Lấy người dùng theo email thành công');
 };
 
+// Lấy profile người dùng hiện tại
 export const getProfile = async (req: Request, res: Response) => {
   res.customSuccess(req.user, 'Lấy hồ sơ thành công');
 };
 
+// Lấy người dùng theo ID
 export const getUserById = async (req: Request, res: Response) => {
   const data = await getUserByIdService(req.params.id as string);
   res.customSuccess(data, 'Lấy người dùng theo ID thành công');

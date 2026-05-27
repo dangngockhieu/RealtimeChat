@@ -5,10 +5,12 @@ import { getUserByEmailWithPassword, createUser, updateRefreshToken as updateRef
 import { ForbiddenException, NotFoundException, UnauthorizedException, BadRequestException } from '../middlewares/formatResponse/exception/customException';
 import { UserLogin } from '../dtos/response/auth.interface';
 
+// Hàm băm token bằng SHA-512
 const hashToken512 = (token: string): string => {
     return createHash('sha512').update(token).digest('hex');
 }
 
+// Tạo access token
 const createAccessToken = (id: string, email: string, role: string): string => {
     const payload = { id, email, role };
     return jwt.sign(payload, process.env.JWT_SECRET || 'default_secret', {
@@ -16,6 +18,7 @@ const createAccessToken = (id: string, email: string, role: string): string => {
     });
 };
 
+// Tạo refresh token
 const createRefreshToken = (id: string, email: string): string => {
     const payload = { id, email };
     return jwt.sign(payload, process.env.JWT_REFRESH_SECRET || 'default_refresh_secret', {
@@ -23,6 +26,7 @@ const createRefreshToken = (id: string, email: string): string => {
     });
 };
 
+// Xác thực refresh token
 const validateRefreshToken = async (token: string) => {
     try {
         const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET || 'default_refresh_secret') as any;
@@ -42,6 +46,7 @@ const validateRefreshToken = async (token: string) => {
     }
 };
 
+// Xác thực người dùng khi đăng nhập
 export const validateUser = async (email: string, password: string): Promise<UserLogin> => {
     const user = await getUserByEmailWithPassword(email);
     if (!user) {
@@ -58,6 +63,7 @@ export const validateUser = async (email: string, password: string): Promise<Use
     return { id: _id.toString(), email: userEmail, firstName, lastName, role };
 }
 
+// Đăng ký người dùng mới
 export const registerUser = async (email: string, password: string, firstName: string, lastName: string): Promise<void> => {
     const existingUser = await getUserByEmailWithPassword(email).catch(() => null);
     if (existingUser) {
@@ -66,6 +72,7 @@ export const registerUser = async (email: string, password: string, firstName: s
     await createUser(email, password, firstName, lastName);
 }
 
+// Đăng nhập
 export const loginUser = async (user: UserLogin): Promise<{ accessToken: string; refreshToken: string }> => {
     const accessToken = createAccessToken(user.id, user.email, user.role);
     const refreshToken = createRefreshToken(user.id, user.email);
@@ -79,10 +86,12 @@ export const loginUser = async (user: UserLogin): Promise<{ accessToken: string;
     };
 };
 
+// Đăng xuất
 export const logoutUser = async (id: string): Promise<void> => {
     await updateRefreshTokenService(id, null);
 };
 
+// Làm mới token
 export const refreshTokensService = async (refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> => {
     const payload = await validateRefreshToken(refreshToken);
 

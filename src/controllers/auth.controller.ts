@@ -4,12 +4,14 @@ import { BadRequestException } from '../middlewares/formatResponse/exception/cus
 import { UserAccount, UserLogin } from '../dtos/response/auth.interface';
 import { RegisterRequestDto } from '../dtos/request/auth.dto';
 
+// Đăng ký người dùng mới
 export const register = async (req: Request, res: Response) => {
     const { email, password, firstName, lastName } = req.body as RegisterRequestDto;
     await registerUser(email, password, firstName, lastName);
     res.customSuccess(null, 'Đăng ký thành công');
 };
 
+// Đăng nhập người dùng
 export const login = async (req: Request, res: Response) => {
     const user = req.user as UserLogin;
 
@@ -45,6 +47,7 @@ export const login = async (req: Request, res: Response) => {
     );
 };
 
+// Đăng xuất người dùng
 export const logout = async (req: Request, res: Response) => {
     const user = req.user as UserAccount;
 
@@ -66,6 +69,7 @@ export const logout = async (req: Request, res: Response) => {
     res.customSuccess(null, 'Đăng xuất thành công');
 };
 
+// Làm mới token
 export const refreshTokens = async (req: Request, res: Response) => {
     const refreshToken = req.cookies?.refreshToken;
 

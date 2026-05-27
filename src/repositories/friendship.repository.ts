@@ -11,6 +11,7 @@ export const findFriendship = async (userId1: string, userId2: string) => {
     }).exec();
 };
 
+// Tìm liên kết bạn bè theo ID
 export const findById = async (id: string, populateUsers = false) => {
     let query = Friendship.findById(id);
     if (populateUsers) {
@@ -20,6 +21,7 @@ export const findById = async (id: string, populateUsers = false) => {
     return await query.exec();
 };
 
+// Tạo lời mời kết bạn mới
 export const createFriendship = async (requesterId: string, recipientId: string, status: FriendshipStatus = FriendshipStatus.PENDING, blockedBy?: string) => {
     const friendship = new Friendship({
         requester: new Types.ObjectId(requesterId),
@@ -30,10 +32,12 @@ export const createFriendship = async (requesterId: string, recipientId: string,
     return await friendship.save();
 };
 
+// Cập nhật trạng thái lời mời kết bạn
 export const saveFriendship = async (friendship: IFriendship) => {
     return await friendship.save();
 };
 
+// Tìm danh sách người dùng bị chặn
 export const findBlockedFriendship = async (blockedBy: string, friendId: string) => {
     return await Friendship.findOne({
         blockedBy,
@@ -45,10 +49,12 @@ export const findBlockedFriendship = async (blockedBy: string, friendId: string)
     }).exec();
 };
 
+// Xóa liên kết bạn bè theo ID
 export const deleteFriendshipById = async (id: string) => {
     return await Friendship.findByIdAndDelete(id).exec();
 };
 
+// Bỏ chặn người dùng
 export const deleteFriendshipBlocked = async (blockedBy: string, friendId: string) => {
     return await Friendship.findOneAndDelete({
         blockedBy: new Types.ObjectId(blockedBy),
@@ -60,6 +66,7 @@ export const deleteFriendshipBlocked = async (blockedBy: string, friendId: strin
     }).exec();
 };
 
+// Lấy danh sách bạn bè đã chấp nhận
 export const getAcceptedFriendships = async (userId: string) => {
     const objectUserId = new Types.ObjectId(userId);
     return await Friendship.find({
@@ -75,6 +82,7 @@ export const getAcceptedFriendships = async (userId: string) => {
     .exec();
 };
 
+// Lấy danh sách lời mời kết bạn đang chờ
 export const getPendingFriendRequests = async (userId: string) => {
     const objectUserId = new Types.ObjectId(userId);
     return await Friendship.find({
@@ -86,6 +94,7 @@ export const getPendingFriendRequests = async (userId: string) => {
     .exec();
 };
 
+// Lấy danh sách người dùng bị chặn
 export const getBlockedFriendships = async (userId: string) => {
     const objectUserId = new Types.ObjectId(userId);
     return await Friendship.find({

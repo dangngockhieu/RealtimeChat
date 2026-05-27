@@ -48,7 +48,7 @@ const friendshipRoutes = (app: Express) => {
 
   router.patch('/:id/decline', authenticate, declineFriendship);
 
-  app.use('/users', router);
+  app.use('/friendships', router);
 };
 
 export default friendshipRoutes;
