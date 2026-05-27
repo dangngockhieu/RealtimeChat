@@ -3,7 +3,7 @@ import { Member, IMember, MemberStatus } from "../schemas/member.schema";
 import { IUser } from "../schemas/user.schema";
 
 export type MemberWithUser = Omit<IMember, 'userId'> & {
-    userId: IUser;
+    user: IUser;
 };
 
 // Thông tin chi tiết (vai trò, trạng thái, thời gian đọc tin cuối,...)
@@ -15,12 +15,15 @@ export const currentUserMemberInfo = async (conversationId: string, currentUserI
     return member;
 }
 
-// Tìm các thành viên của cuộc trò chuyện
-export const findMembersByConversationId = async (conversationId: string): Promise<MemberWithUser[]> => {
-    const members = await Member.find({ conversationId })
-                .populate('userId', 'firstName lastName role')
-                .exec();
-    return members as unknown as MemberWithUser[];
+// Tìm thành viên còn lại trong cuộc trò chuyện DIRECT
+export const findMembersByConversationId = async (userId: string, conversationId: string): Promise<MemberWithUser> => {
+    const members = await Member.findOne({
+            conversationId,
+            userId: { $ne: userId },
+        })
+            .populate('userId', 'firstName lastName')
+            .exec();
+    return members as unknown as MemberWithUser;
 }
 
 // Insert nhiều thành viên vào cuộc trò chuyện (dùng khi tạo nhóm mới)
@@ -85,4 +88,8 @@ export const findMembersWithUserDetails = async (
 export const findConversationIdsByUserId = async (userId: string): Promise<string[]> => {
     const memberships = await Member.find({ userId, status: MemberStatus.ACCEPTED }).select('conversationId').lean().exec();
     return memberships.map(m => m.conversationId.toString());
+}
+
+// Thêm mới người dùng vào cuộc trò chuyện
+export const addUserToConversation = async (userId: string,conversationId: string, userIds: string[]) => {
 }

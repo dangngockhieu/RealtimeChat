@@ -1,3 +1,5 @@
+import { FriendshipStatus } from "../../schemas/friendship.schema";
+
 export interface FriendshipUserDto{
     id: string;
     email: string;
@@ -6,7 +8,7 @@ export interface FriendshipUserDto{
 }
 export interface FriendshipResponseDto {
     id: string;
-    status: string;
+    status: FriendshipStatus;
     requester: FriendshipUserDto;
     recipient: FriendshipUserDto;
 }

@@ -6,7 +6,6 @@ import {
     createConversation,
     createDirectConversation,
     findConversationById,
-    findConversationByIdAndType,
     findConversationsByUserId,
     findDirectConversation
 } from "../repositories/conversation.repository";
@@ -14,7 +13,6 @@ import {
     currentUserMemberInfo,
     findConversationIdsByUserId,
     findMembersByConversationId,
-    findMembersWithUserDetails,
     insertDirectChatMembers,
     insertManyUserToConversation,
     MemberWithUser
@@ -22,87 +20,8 @@ import {
 import { countMessagesUnRead } from "../repositories/message.repository";
 import { plainToInstance } from "class-transformer";
 import { CursorPaginateResponse } from "../dtos/response/pagination.dto";
-
-const formatConversationResponse = async(conversationId: string, currentUserId: string): Promise<ConversationDetailResponseDto> => {
-    // GỌI SONG SONG ĐỂ TỐI ƯU TỐC ĐỘ (Promise.all)
-    const [conversation, members, currentMember] = await Promise.all([
-        findConversationById(conversationId),
-        findMembersByConversationId(conversationId),
-        currentUserMemberInfo(conversationId, currentUserId)
-    ]);
-
-    if (!conversation || !currentMember) {
-        throw InternalServerException('Dữ liệu không nhất quán');
-    }
-
-    // Tối ưu unreadCount: Không đếm tin nhắn do chính mình gửi
-    let unreadCount = 0;
-    if (currentMember.lastReadAt) {
-        unreadCount = await countMessagesUnRead(conversationId, currentUserId, currentMember.lastReadAt);
-    }
-
-    const typedMembers = members as MemberWithUser[];
-    const otherMember = typedMembers.filter((m) => m.userId._id.toString() !== currentUserId);
-    const name = conversation.type === 'DIRECT'
-        ? otherMember && otherMember.length > 0
-            ? `${otherMember[0].userId.firstName} ${otherMember[0].userId.lastName}`.trim() || 'Cuộc trò chuyện'
-            : 'Cuộc trò chuyện'
-        : conversation.name;
-
-    return {
-        id: conversationId,
-        name: name,
-        type: conversation.type,
-        memberCount: conversation.memberCount,
-        myMembership: {
-            role: currentMember.role,
-            status: currentMember.status,
-            lastReadAt: currentMember.lastReadAt,
-            unreadCount
-        },
-        participants: typedMembers.map((m) => ({
-            userId: m.userId._id.toString(),
-            firstName: m.userId.firstName,
-            lastName: m.userId.lastName,
-            role: m.role,
-        }))
-    };
-}
-
-const buildResponseFromData = (
-    conversationId: string,
-    conversationName: string,
-    conversationType: string,
-    populatedMembers: MemberWithUser[],
-    currentUserId: string,
-    currentUserRole: string,
-): ConversationDetailResponseDto =>{
-    const otherMember = populatedMembers.find((m) => m.userId._id.toString() !== currentUserId);
-    const name = conversationType === 'DIRECT'
-        ? otherMember
-            ? `${otherMember.userId.firstName} ${otherMember.userId.lastName}`.trim() || 'Cuộc trò chuyện'
-            : 'Cuộc trò chuyện'
-        : conversationName;
-
-    return {
-        id: conversationId,
-        name,
-        type: conversationType,
-        memberCount: populatedMembers.length,
-        myMembership: {
-            role: currentUserRole,
-            status: 'ACCEPTED',
-            lastReadAt: null,
-            unreadCount: 0
-        },
-        participants: populatedMembers.map((m) => ({
-            userId: m.userId._id.toString(),
-            firstName: m.userId.firstName,
-            lastName: m.userId.lastName,
-            role: m.role,
-        }))
-    };
-}
+import { ConversationPrivacy, ConversationType } from "../schemas/conversation.schema";
+import { MemberRole, MemberStatus } from "../schemas/member.schema";
 
 // Tạo nhóm chat mới
 export const createGroupChatService = async (creatorId: string, dto: CreateGroupChatDto): Promise<ConversationDetailResponseDto> => {
@@ -116,20 +35,19 @@ export const createGroupChatService = async (creatorId: string, dto: CreateGroup
 
             await session.commitTransaction();
 
-            const allUserIds = [creatorId, ...dto.participantIds];
-            const populatedMembers = await findMembersWithUserDetails (
-                newConversation._id.toString(),
-                allUserIds
-            ) as MemberWithUser[];
-
-            return buildResponseFromData(
-                newConversation._id.toString(),
-                dto.name,
-                'GROUP',
-                populatedMembers,
-                creatorId,
-                'OWNER',
-            );
+            return {
+                id: newConversation._id.toString(),
+                name: dto.name,
+                type: ConversationType.GROUP,
+                privacy: dto.privacy,
+                memberCount: dto.participantIds.length + 1,
+                myMembership: {
+                    role: MemberRole.OWNER,
+                    status: MemberStatus.ACCEPTED,
+                    lastReadAt: null,
+                    unreadCount: 0
+                }
+            };
         } catch (error) {
             await session.abortTransaction();
             throw InternalServerException('Không thể tạo nhóm chat.');
@@ -142,10 +60,32 @@ export const createGroupChatService = async (creatorId: string, dto: CreateGroup
 export const findOrCreateDirectChatService = async(userId1: string, userId2: string): Promise<ConversationDetailResponseDto> =>{
     const sharedConvs = await findDirectConversation(userId1, userId2);
 
-    if (sharedConvs.length > 0) {
-        const convIds = sharedConvs.map(c => c._id);
-        const conv = await findConversationByIdAndType(convIds);
-        if (conv) return formatConversationResponse(conv._id.toString(), userId1);
+    if (sharedConvs !== null) {
+        const [otherMember, currentMember] = await Promise.all([
+            findMembersByConversationId(userId1,sharedConvs._id.toString()),
+            currentUserMemberInfo(sharedConvs._id.toString(), userId1)
+        ]);
+        if (!otherMember || !currentMember) {
+            throw InternalServerException('Dữ liệu không nhất quán');
+        }
+
+        let unreadCount = 0;
+        if (currentMember.lastReadAt) {
+            unreadCount = await countMessagesUnRead(sharedConvs._id.toString(), userId1, currentMember.lastReadAt);
+        }
+        return {
+            id: sharedConvs._id.toString(),
+            name: `${otherMember.user.firstName} ${otherMember.user.lastName}`.trim() || 'Cuộc trò chuyện',
+            type: sharedConvs.type,
+            privacy: sharedConvs.privacy,
+            memberCount: sharedConvs.memberCount,
+            myMembership: {
+                role: MemberRole.MEMBER,
+                status: MemberStatus.ACCEPTED,
+                lastReadAt: currentMember.lastReadAt,
+                unreadCount
+            }
+        };
     }
 
     const session = await startSession();
@@ -157,16 +97,21 @@ export const findOrCreateDirectChatService = async(userId1: string, userId2: str
 
         await session.commitTransaction();
 
-        const populatedMembers = await findMembersByConversationId(newConv._id.toString()) as MemberWithUser[];
+        const otherMember = await findMembersByConversationId(userId1,newConv._id.toString()) as MemberWithUser;
 
-        return buildResponseFromData(
-            newConv._id.toString(),
-            '',
-            'DIRECT',
-            populatedMembers,
-            userId1,
-            'MEMBER',
-        );
+        return {
+            id: newConv._id.toString(),
+            name: `${otherMember.user.firstName} ${otherMember.user.lastName}`.trim() || 'Cuộc trò chuyện',
+            type: ConversationType.DIRECT,
+            privacy: ConversationPrivacy.PRIVATE,
+            memberCount: 2,
+            myMembership: {
+                role: MemberRole.MEMBER,
+                status: MemberStatus.ACCEPTED,
+                lastReadAt: null,
+                unreadCount: 0
+            }
+        };
     } catch (error) {
         await session.abortTransaction();
         throw InternalServerException('Lỗi tạo chat 1-1');

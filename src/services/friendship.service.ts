@@ -67,7 +67,7 @@ export const createFriendshipService = async (userId: string, friendId: string):
             const friendship = await findById(existingFriendship._id.toString(), true);
             return {
                 id: friendship?._id.toString() as string,
-                status: friendship?.status as string,
+                status: friendship?.status as FriendshipStatus,
                 requester: toFriendshipUserDto(friendship?.requester),
                 recipient: toFriendshipUserDto(friendship?.recipient),
             };
@@ -83,7 +83,7 @@ export const createFriendshipService = async (userId: string, friendId: string):
     const friendship = await findById(savedFriendship._id.toString(), true);
     return {
         id: friendship?._id.toString() as string,
-        status: friendship?.status as string,
+        status: friendship?.status as FriendshipStatus,
         requester: toFriendshipUserDto(friendship?.requester),
         recipient: toFriendshipUserDto(friendship?.recipient),
     };

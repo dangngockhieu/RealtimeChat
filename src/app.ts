@@ -10,6 +10,7 @@ import configPassportJwt from './middlewares/configPassport/passport.jwt';
 import { responseFormatter } from './middlewares/formatResponse/success/successResponse';
 import { errorHandler } from './middlewares/formatResponse/exception/errorHandler';
 import friendshipRoutes from './routes/friendship.routes';
+import conversationRoutes from './routes/conversation.routes';
 
 const app = express();
 const origins = process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean);
@@ -35,6 +36,7 @@ app.use(responseFormatter);
 // Config routes
 userRoutes(app);
 friendshipRoutes(app);
+conversationRoutes(app);
 authRoutes(app);
 
 app.get('/', (_req, res) => {

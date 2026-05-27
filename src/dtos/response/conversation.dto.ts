@@ -1,4 +1,6 @@
 import { Expose, Transform, Type } from "class-transformer";
+import { MemberRole, MemberStatus } from "../../schemas/member.schema";
+import { ConversationPrivacy, ConversationType } from "../../schemas/conversation.schema";
 
 export class LastMessageResponseDto {
     @Expose()
@@ -19,8 +21,8 @@ export class LastMessageResponseDto {
 }
 
 export interface MyMemberResponseDto {
-    role: string;
-    status: string;
+    role: MemberRole;
+    status: MemberStatus;
     lastReadAt?: Date | null;
     unreadCount: number;
 }
@@ -29,16 +31,16 @@ export interface MemberInfoDto{
     userId: string;
     firstName: string;
     lastName: string;
-    role: string;
+    role: MemberRole;
 }
 
 export interface ConversationDetailResponseDto {
     id: string;
     name?: string;
-    type: string;
+    type: ConversationType;
+    privacy: ConversationPrivacy;
     memberCount: number;
     myMembership: MyMemberResponseDto;
-    participants: MemberInfoDto[];
 }
 
 export class ConversationSummaryResponseDto {
@@ -50,7 +52,7 @@ export class ConversationSummaryResponseDto {
     name: string;
 
     @Expose()
-    type: string;
+    type: ConversationType;
 
     @Expose()
     updatedAt: Date;

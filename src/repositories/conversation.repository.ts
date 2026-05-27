@@ -1,6 +1,7 @@
 import { ClientSession, Types } from "mongoose";
 import { CreateGroupChatDto } from "../dtos/request/conversation.dto";
 import { Conversation, ConversationPrivacy, ConversationType } from "../schemas/conversation.schema";
+import { Member } from "../schemas/member.schema";
 
 // Tìm kiếm cuộc trò chuyện theo ID
 export const findConversationById = async (conversationId: string) => {
@@ -23,16 +24,18 @@ export const createConversation = async (dto: CreateGroupChatDto, session?: Clie
 
 // Tìm cuộc trò chuyện trực tiếp giữa hai người dùng
 export const findDirectConversation = async (userId1: string, userId2: string)=> {
-    return await Conversation.aggregate([
-            { $match: { userId: { $in: [new Types.ObjectId(userId1), new Types.ObjectId(userId2)] } } },
-            { $group: { _id: "$conversationId", count: { $sum: 1 } } },
-            { $match: { count: 2 } }
-        ]);
-}
+    const results = await Member.aggregate([
+        { $match: { userId: { $in: [new Types.ObjectId(userId1), new Types.ObjectId(userId2)] } } },
+        { $group: { _id: "$conversationId", count: { $sum: 1 } } },
+        { $match: { count: 2 } }
+    ]);
 
-// Tìm kiếm cuộc trò chuyện trực tiếp 2 ngườitheo ID
-export const findConversationByIdAndType = async (conversationIds: string[]) => {
-    return await Conversation.findOne({ _id: { $in: conversationIds }, type: ConversationType.DIRECT }).exec();
+    if (!results.length) return null;
+
+    return await Conversation.findOne({
+        _id: { $in: results.map(r => r._id) },
+        type: ConversationType.DIRECT
+    }).exec();
 }
 
 // Tạo cuộc trò chuyện giữa 2 người dùng
