@@ -13,7 +13,7 @@ import {
     getSendPendingFriend
 } from '../repositories/friendship.repository';
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '../middlewares/formatResponse/exception/customException';
-import { FriendshipResponseDto, FriendshipUserDto } from '../dtos/response/friendship.interface';
+import { FriendshipResponseDto, FriendshipUserDto } from '../dtos/response/friendship.dto';
 
 // Helper format trả về
 const toFriendshipUserDto = (user: any): FriendshipUserDto => {

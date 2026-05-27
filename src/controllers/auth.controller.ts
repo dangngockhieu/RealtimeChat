@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { registerUser, loginUser, logoutUser, refreshTokensService } from '../services/auth.service';
 import { BadRequestException } from '../middlewares/formatResponse/exception/customException';
-import { UserAccount, UserLogin } from '../dtos/response/auth.interface';
+import { UserAccount, UserLogin } from '../dtos/response/auth.dto';
 import { RegisterRequestDto } from '../dtos/request/auth.dto';
 
 // Đăng ký người dùng mới

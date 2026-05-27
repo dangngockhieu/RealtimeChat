@@ -3,7 +3,7 @@ import * as argon from 'argon2';
 import jwt from 'jsonwebtoken';
 import { getUserByEmailWithPassword, createUser, updateRefreshToken as updateRefreshTokenService, getUserWithRefreshTokenById } from './user.service';
 import { ForbiddenException, NotFoundException, UnauthorizedException, BadRequestException } from '../middlewares/formatResponse/exception/customException';
-import { UserLogin } from '../dtos/response/auth.interface';
+import { UserLogin } from '../dtos/response/auth.dto';
 
 // Hàm băm token bằng SHA-512
 const hashToken512 = (token: string): string => {

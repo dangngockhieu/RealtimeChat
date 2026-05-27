@@ -1,6 +1,7 @@
 import * as argon from 'argon2';
 import { ChangePasswordDto, UpdateUserDto } from '../dtos/request/user.dto';
-import { UserResponseDto, PaginateResponse } from '../dtos/response/user.interface';
+import { UserResponseDto } from '../dtos/response/user.dto';
+import { PaginateResponse } from '../dtos/response/pagination.dto';
 import { count,
     createUser as createUserRepository,
     findAll,

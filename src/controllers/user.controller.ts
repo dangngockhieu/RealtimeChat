@@ -7,7 +7,7 @@ import {
   updateUserProfile as updateUserProfileService,
 } from '../services/user.service';
 import { BadRequestException } from '../middlewares/formatResponse/exception/customException';
-import { UserAccount } from '../dtos/response/auth.interface';
+import { UserAccount } from '../dtos/response/auth.dto';
 import { ChangePasswordDto, UpdateUserDto } from '../dtos/request/user.dto';
 
 // Thay đổi mật khẩu người dùng

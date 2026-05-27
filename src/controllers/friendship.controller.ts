@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { UserAccount } from '../dtos/response/auth.interface';
+import { UserAccount } from '../dtos/response/auth.dto';
 import {
     acceptFriendshipService,
     blockFriendshipService,
