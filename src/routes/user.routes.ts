@@ -20,10 +20,10 @@ const userRoutes = (app: Express) => {
   router.get('/profile', authenticate, getProfile);
 
   // Đổi mật khẩu
-  router.put('/change-password', authenticate, validateDto(ChangePasswordDto), changePassword);
+  router.patch('/change-password', authenticate, validateDto(ChangePasswordDto), changePassword);
 
   // Cập nhật profile
-  router.put('/profile', authenticate, validateDto(UpdateUserDto), updateProfile);
+  router.patch('/profile', authenticate, validateDto(UpdateUserDto), updateProfile);
 
   // ==================== ADMIN ONLY ====================
 
