@@ -94,6 +94,18 @@ export const getPendingFriendRequests = async (userId: string) => {
     .exec();
 };
 
+// Lấy danh sách lời mời kết bạn đã gửi
+export const getSendPendingFriend = async (userId: string) => {
+    const objectUserId = new Types.ObjectId(userId);
+    return await Friendship.find({
+        requester: objectUserId,
+        status: FriendshipStatus.PENDING
+    })
+    .populate('recipient', '_id email firstName lastName')
+    .lean()
+    .exec();
+};
+
 // Lấy danh sách người dùng bị chặn
 export const getBlockedFriendships = async (userId: string) => {
     const objectUserId = new Types.ObjectId(userId);

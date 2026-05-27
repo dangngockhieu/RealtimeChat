@@ -10,6 +10,7 @@ import {
     getBlockedUsers,
     getFriendships,
     getPendingFriendships,
+    getSendPendingFriend,
     removeSendFriendship,
     unBlockFriendship,
 } from '../controllers/friendship.controller';
@@ -21,6 +22,9 @@ const friendshipRoutes = (app: Express) => {
 
   // Lấy danh sách bạn bè của người dùng hiện tại
   router.get('/', authenticate, getFriendships);
+
+  // Lấy danh sách lời mời kết bạn đã gửi
+  router.get('/send-pending', authenticate, getSendPendingFriend);
 
   // Lấy danh sách lời mời kết bạn đang chờ
   router.get('/pending', authenticate, getPendingFriendships);

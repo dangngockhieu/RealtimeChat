@@ -9,7 +9,8 @@ import {
     deleteFriendshipBlocked,
     getAcceptedFriendships,
     getPendingFriendRequests,
-    getBlockedFriendships
+    getBlockedFriendships,
+    getSendPendingFriend
 } from '../repositories/friendship.repository';
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '../middlewares/formatResponse/exception/customException';
 import { FriendshipResponseDto, FriendshipUserDto } from '../dtos/response/friendship.interface';
@@ -182,6 +183,18 @@ export const getPendingFriendRequestsService = async (userId: string) => {
             id: friendship._id.toString(),
             status: friendship.status,
             requester: toFriendshipUserDto(friendship.requester)
+        };
+    });
+};
+
+// Lấy list request pending (mình đã gửi)
+export const getSendPendingFriendService = async (userId: string) => {
+    const pendingFriendships = await getSendPendingFriend(userId);
+    return pendingFriendships.map((friendship: any) => {
+        return {
+            id: friendship._id.toString(),
+            status: friendship.status,
+            recipient: toFriendshipUserDto(friendship.recipient)
         };
     });
 };

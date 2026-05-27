@@ -8,6 +8,7 @@ import {
     getBlockedUsersService,
     getFriendshipsForUser,
     getPendingFriendRequestsService,
+    getSendPendingFriendService,
     removeFriendshipService,
     removeSendFriendshipService,
     unBlockFriendshipService
@@ -26,6 +27,13 @@ export const getPendingFriendships = async (req: Request, res: Response) => {
     const user = req.user as UserAccount;
     const friendships = await getPendingFriendRequestsService(user.id);
     res.customSuccess(friendships, 'Lấy danh sách lời mời kết bạn thành công');
+}
+
+// Lấy danh sách lời mời kết bạn đã gửi
+export const getSendPendingFriend = async (req: Request, res: Response) => {
+    const user = req.user as UserAccount;
+    const friendships = await getSendPendingFriendService(user.id);
+    res.customSuccess(friendships, 'Lấy danh sách lời mời kết đã gửi thành công');
 }
 
 // Lấy danh sách người dùng bị chặn
