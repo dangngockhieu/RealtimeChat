@@ -2,6 +2,11 @@ import { ClientSession, Types } from "mongoose";
 import { CreateGroupChatDto } from "../dtos/request/conversation.dto";
 import { Conversation, ConversationPrivacy, ConversationType } from "../schemas/conversation.schema";
 import { Member } from "../schemas/member.schema";
+import { randomBytes } from 'crypto';
+
+const generateInviteCode = () => {
+    return randomBytes(8).toString('base64url');
+};
 
 // Tìm kiếm cuộc trò chuyện theo ID
 export const findConversationById = async (conversationId: string) => {
@@ -11,17 +16,31 @@ export const findConversationById = async (conversationId: string) => {
 // Tạo nhóm mới
 export const createConversation = async (dto: CreateGroupChatDto, session?: ClientSession) => {
     const lastMessageAt = new Date();
-    const [conversation] = await Conversation.create(
-        [{
-            type: ConversationType.GROUP,
-            privacy: dto.privacy,
-            name: dto.name,
-            memberCount: dto.participantIds.length + 1,
-            lastMessageAt,
-        }],
-        { session }
-    );
-    return conversation;
+    while (true) {
+        try {
+            const [conversation] = await Conversation.create(
+                [
+                    {
+                        type: ConversationType.GROUP,
+                        privacy: dto.privacy,
+                        name: dto.name,
+                        joinByLink: dto.joinByLink ?? false,
+                        inviteCode: generateInviteCode(),
+                        memberCount: dto.participantIds.length + 1,
+                        lastMessageAt,
+                    },
+                ],
+                { session },
+            );
+            return conversation;
+        } catch (err: any) {
+            // duplicate inviteCode
+            if (err?.code === 11000) {
+                continue;
+            }
+            throw err;
+        }
+    }
 }
 
 // Tìm cuộc trò chuyện trực tiếp giữa hai người dùng
