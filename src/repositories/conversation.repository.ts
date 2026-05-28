@@ -10,12 +10,14 @@ export const findConversationById = async (conversationId: string) => {
 
 // Tạo nhóm mới
 export const createConversation = async (dto: CreateGroupChatDto, session?: ClientSession) => {
+    const lastMessageAt = new Date();
     const [conversation] = await Conversation.create(
         [{
             type: ConversationType.GROUP,
             privacy: dto.privacy,
             name: dto.name,
             memberCount: dto.participantIds.length + 1,
+            lastMessageAt,
         }],
         { session }
     );
@@ -40,11 +42,13 @@ export const findDirectConversation = async (userId1: string, userId2: string)=>
 
 // Tạo cuộc trò chuyện giữa 2 người dùng
 export const createDirectConversation = async (session?: ClientSession) => {
+    const lastMessageAt = new Date();
     const [conversation] = await Conversation.create(
         [{
             type: ConversationType.DIRECT,
             privacy: ConversationPrivacy.PRIVATE,
             memberCount: 2,
+            lastMessageAt,
         }],
         { session }
     );
@@ -62,7 +66,11 @@ export const findConversationsByUserId = async (limit: number, filter: any) => {
 
 // Thay đổi privacy của cuộc trò chuyện
 export const changeConversationPrivacy = async (conversationId: string, privacy: ConversationPrivacy) => {
-    await Conversation.findByIdAndUpdate(conversationId, { privacy }, { new: true }).exec();
+    await Conversation.findByIdAndUpdate(
+        conversationId,
+        { privacy },
+        { returnDocument: 'after' }
+    ).exec();
 }
 
 // Lấy thông tin cuộc trò chuyện
@@ -72,7 +80,7 @@ export const getConversationInfo = async (conversationId: string) => {
             .lean();
 }
 
-export const incrementConversationMemberCount = async (conversationId: string, incrementBy: number, session?: ClientSession) => {
+export const changeConversationMemberCount = async (conversationId: string, incrementBy: number, session?: ClientSession) => {
     return await Conversation.findByIdAndUpdate(
         conversationId,
         { $inc: { memberCount: incrementBy } },

@@ -139,6 +139,11 @@ export const getMyConversationsService = async (userId: string, limit=20, cursor
         const hasNextPage = conversations.length > limit;
         const data = hasNextPage ? conversations.slice(0, limit) : conversations;
         const nextCursor = hasNextPage ? (data[data.length - 1]?.lastMessageAt ?? null) : null;
+        await Promise.all(conversations.filter(c => c.type === ConversationType.DIRECT).map(async c => {
+            const otherMember = await findMembersByConversationId(userId,c._id.toString());
+            if(!otherMember) return;
+            c.name = `${otherMember.userId.firstName} ${otherMember.userId.lastName}`.trim() || 'Cuộc trò chuyện';
+        }));
         const result = data.map(conv => plainToInstance(ConversationSummaryResponseDto, conv, {
             excludeExtraneousValues: true,
         }));
