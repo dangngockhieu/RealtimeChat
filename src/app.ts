@@ -11,6 +11,7 @@ import { responseFormatter } from './middlewares/formatResponse/success/successR
 import { errorHandler } from './middlewares/formatResponse/exception/errorHandler';
 import friendshipRoutes from './routes/friendship.routes';
 import conversationRoutes from './routes/conversation.routes';
+import memberRoutes from './routes/member.routes';
 
 const app = express();
 const origins = process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean);
@@ -37,6 +38,7 @@ app.use(responseFormatter);
 userRoutes(app);
 friendshipRoutes(app);
 conversationRoutes(app);
+memberRoutes(app);
 authRoutes(app);
 
 app.get('/', (_req, res) => {

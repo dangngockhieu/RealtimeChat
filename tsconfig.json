@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "experimentalDecorators": true,
+    "ignoreDeprecations": "6.0",
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
     "module": "commonjs",

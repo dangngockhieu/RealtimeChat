@@ -76,7 +76,7 @@ export const findOrCreateDirectChatService = async(userId1: string, userId2: str
         }
         return {
             id: sharedConvs._id.toString(),
-            name: `${otherMember.user.firstName} ${otherMember.user.lastName}`.trim() || 'Cuộc trò chuyện',
+            name: `${otherMember.userId.firstName} ${otherMember.userId.lastName}`.trim() || 'Cuộc trò chuyện',
             type: sharedConvs.type,
             privacy: sharedConvs.privacy,
             memberCount: sharedConvs.memberCount,
@@ -102,7 +102,7 @@ export const findOrCreateDirectChatService = async(userId1: string, userId2: str
 
         return {
             id: newConv._id.toString(),
-            name: `${otherMember.user.firstName} ${otherMember.user.lastName}`.trim() || 'Cuộc trò chuyện',
+            name: `${otherMember.userId.firstName} ${otherMember.userId.lastName}`.trim() || 'Cuộc trò chuyện',
             type: ConversationType.DIRECT,
             privacy: ConversationPrivacy.PRIVATE,
             memberCount: 2,

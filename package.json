@@ -5,6 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "start": "nodemon",
+    "build": "tsc",
     "dev": "nodemon"
   },
   "nodemonConfig": {

@@ -64,3 +64,18 @@ export const findConversationsByUserId = async (limit: number, filter: any) => {
 export const changeConversationPrivacy = async (conversationId: string, privacy: ConversationPrivacy) => {
     await Conversation.findByIdAndUpdate(conversationId, { privacy }, { new: true }).exec();
 }
+
+// Lấy thông tin cuộc trò chuyện
+export const getConversationInfo = async (conversationId: string) => {
+    return await Conversation.findById(conversationId)
+            .populate('privacy')
+            .lean();
+}
+
+export const incrementConversationMemberCount = async (conversationId: string, incrementBy: number, session?: ClientSession) => {
+    return await Conversation.findByIdAndUpdate(
+        conversationId,
+        { $inc: { memberCount: incrementBy } },
+        { session }
+    ).exec();
+};
