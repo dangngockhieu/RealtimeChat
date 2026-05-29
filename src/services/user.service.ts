@@ -8,7 +8,7 @@ import { count,
     findByEmail,
     findByEmailWithPassword,
     findById,
-    findByIdWithPassword,
+    findPasswordById,
     findByIdWithRefreshToken,
     updatePassword as updatePasswordRepository,
     updateProfile,
@@ -35,7 +35,7 @@ export const updatePassword = async (userId: string, dto: ChangePasswordDto): Pr
         throw BadRequestException('New password and confirm password do not match');
     }
 
-    const user = await findByIdWithPassword(userId);
+    const user = await findPasswordById(userId);
     if (!user) {
         throw NotFoundException('User not found');
     }

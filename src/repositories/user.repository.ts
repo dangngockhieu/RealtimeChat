@@ -2,16 +2,16 @@ import { UpdateUserDto } from '../dtos/request/user.dto';
 import { User } from '../schemas/user.schema';
 
 // Tìm người dùng theo ID và bao gồm mật khẩu
-export const findByIdWithPassword = async (userId: string) => {
+export const findPasswordById = async (userId: string) => {
     return await User.findById(userId)
-        .select('+password')
+        .select('password')
         .lean()
         .exec();
 };
 
 // Cập nhật mật khẩu người dùng
 export const updatePassword = async (userId: string, hashedPassword: string) => {
-    return await User.findByIdAndUpdate(
+    await User.findByIdAndUpdate(
         userId,
         { password: hashedPassword })
         .exec();
@@ -38,7 +38,7 @@ export const findById = async (userId: string) => {
 // Tìm người dùng theo ID và bao gồm refreshToken
 export const findByIdWithRefreshToken = async (userId: string) => {
     return await User.findById(userId)
-        .select('-password +refreshToken')
+        .select('email role +refreshToken')
         .lean()
         .exec();
 };
@@ -77,12 +77,12 @@ export const count = async (filter: any): Promise<number> => {
 
 // Tạo người dùng mới
 export const createUser = async (email: string, hashedPassword: string, firstName: string, lastName: string) => {
-    return await User.create({ email, password: hashedPassword, firstName, lastName });
+    await User.create({ email, password: hashedPassword, firstName, lastName });
 };
 
 // Cập nhật refreshToken của người dùng
 export const updateRefreshToken = async (userId: string, hashedRefreshToken: string | null) => {
-    return await User.findByIdAndUpdate(
+    await User.findByIdAndUpdate(
         userId,
         { $set: { refreshToken: hashedRefreshToken } })
         .exec();
