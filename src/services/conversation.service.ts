@@ -1,4 +1,5 @@
 import { startSession } from "mongoose";
+import 'dotenv/config';
 import { CreateGroupChatDto } from "../dtos/request/conversation.dto";
 import { ConversationDetailResponseDto, ConversationSummaryResponseDto } from "../dtos/response/conversation.dto";
 import { InternalServerException } from "../middlewares/formatResponse/exception/customException";
@@ -10,9 +11,9 @@ import {
     findDirectConversation
 } from "../repositories/conversation.repository";
 import {
+    findMembersDirectByConversationId,
     currentUserMemberInfo,
     findConversationIdsByUserId,
-    findMembersByConversationId,
     findMyMemberInfo,
     insertDirectChatMembers,
     insertManyUserToConversation,
@@ -63,7 +64,7 @@ export const findOrCreateDirectChatService = async(userId1: string, userId2: str
 
     if (sharedConvs !== null) {
         const [otherMember, currentMember] = await Promise.all([
-            findMembersByConversationId(userId1,sharedConvs._id.toString()),
+            findMembersDirectByConversationId(userId1, sharedConvs._id.toString()),
             currentUserMemberInfo(sharedConvs._id.toString(), userId1)
         ]);
         if (!otherMember || !currentMember) {
@@ -98,7 +99,7 @@ export const findOrCreateDirectChatService = async(userId1: string, userId2: str
 
         await session.commitTransaction();
 
-        const otherMember = await findMembersByConversationId(userId1,newConv._id.toString()) as MemberWithUser;
+        const otherMember = await findMembersDirectByConversationId(userId1, newConv._id.toString()) as MemberWithUser;
 
         return {
             id: newConv._id.toString(),
@@ -140,7 +141,7 @@ export const getMyConversationsService = async (userId: string, limit=20, cursor
         const data = hasNextPage ? conversations.slice(0, limit) : conversations;
         const nextCursor = hasNextPage ? (data[data.length - 1]?.lastMessageAt ?? null) : null;
         await Promise.all(conversations.filter(c => c.type === ConversationType.DIRECT).map(async c => {
-            const otherMember = await findMembersByConversationId(userId,c._id.toString());
+            const otherMember = await findMembersDirectByConversationId(userId, c._id.toString());
             if(!otherMember) return;
             c.name = `${otherMember.userId.firstName} ${otherMember.userId.lastName}`.trim() || 'Cuộc trò chuyện';
         }));
@@ -163,8 +164,13 @@ export const changeConversationPrivacyService = async (userId: string, conversat
     if (!currentUser) {
         throw InternalServerException('Bạn không phải là thành viên của cuộc trò chuyện này');
     }
-    if (currentUser.role === MemberRole.MEMBER) {
+    if (currentUser.memberRole === MemberRole.MEMBER) {
         throw InternalServerException('Bạn không có quyền thay đổi privacy của cuộc trò chuyện này');
     }
     await changeConversationPrivacy(conversationId, privacy);
+}
+
+// Lấy link mời tham gia cuộc trò chuyện
+export const getInviteLinkService = async (userId: string, token: string) => {
+    return `${process.env.BACKEND_URL}/conversations/${token}`;
 }

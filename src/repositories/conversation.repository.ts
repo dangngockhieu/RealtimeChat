@@ -8,9 +8,13 @@ const generateInviteCode = () => {
     return randomBytes(8).toString('base64url');
 };
 
-// Tìm kiếm cuộc trò chuyện theo ID
-export const findConversationById = async (conversationId: string) => {
-    return await Conversation.findById(conversationId).exec();
+// Tìm kiếm cuộc trò chuyện theo token link mời
+export const getPrivacyConversationByInviteCode = async (inviteCode: string) => {
+    return await Conversation
+    .findOne({ inviteCode })
+    .select('privacy')
+    .lean()
+    .exec();
 }
 
 // Tạo nhóm mới
@@ -24,7 +28,6 @@ export const createConversation = async (dto: CreateGroupChatDto, session?: Clie
                         type: ConversationType.GROUP,
                         privacy: dto.privacy,
                         name: dto.name,
-                        joinByLink: dto.joinByLink ?? false,
                         inviteCode: generateInviteCode(),
                         memberCount: dto.participantIds.length + 1,
                         lastMessageAt,
@@ -56,7 +59,10 @@ export const findDirectConversation = async (userId1: string, userId2: string)=>
     return await Conversation.findOne({
         _id: { $in: results.map(r => r._id) },
         type: ConversationType.DIRECT
-    }).exec();
+    })
+    .select('privacy type memberCount')
+    .lean()
+    .exec();
 }
 
 // Tạo cuộc trò chuyện giữa 2 người dùng
@@ -80,7 +86,8 @@ export const findConversationsByUserId = async (limit: number, filter: any) => {
     .find(filter)
     .sort({ lastMessageAt: -1 })
     .limit(limit + 1)
-    .lean();
+    .lean()
+    .exec();
 }
 
 // Thay đổi privacy của cuộc trò chuyện
@@ -95,12 +102,14 @@ export const changeConversationPrivacy = async (conversationId: string, privacy:
 // Lấy thông tin cuộc trò chuyện
 export const getConversationInfo = async (conversationId: string) => {
     return await Conversation.findById(conversationId)
-            .populate('privacy')
-            .lean();
+            .select('privacy')
+            .lean()
+            .exec();
 }
 
+// Thay đổi số lượng member
 export const changeConversationMemberCount = async (conversationId: string, incrementBy: number, session?: ClientSession) => {
-    return await Conversation.findByIdAndUpdate(
+    await Conversation.findByIdAndUpdate(
         conversationId,
         { $inc: { memberCount: incrementBy } },
         { session }
