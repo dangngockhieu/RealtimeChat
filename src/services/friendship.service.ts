@@ -96,7 +96,7 @@ export const acceptFriendshipService = async (userId: string, friendshipId: stri
         throw NotFoundException('Không tìm thấy lời mời kết bạn');
     }
 
-    const isRecipient = friendship.recipient.toString() === userId;
+    const isRecipient = friendship.recipient._id.toString() === userId;
     if (!isRecipient) {
         throw ForbiddenException('Bạn không có quyền chấp nhận lời mời này');
     }
@@ -116,7 +116,7 @@ export const declineFriendshipService = async (userId: string, friendshipId: str
         throw NotFoundException('Không tìm thấy lời mời kết bạn');
     }
 
-    const isRecipient = friendship.recipient.toString() === userId;
+    const isRecipient = friendship.recipient._id.toString() === userId;
     if (!isRecipient) {
         throw ForbiddenException('Bạn không có quyền hủy lời mời này');
     }
@@ -218,7 +218,7 @@ export const removeSendFriendshipService = async (userId: string, friendshipId: 
         throw NotFoundException('Không tìm thấy lời mời kết bạn');
     }
 
-    const isRequester = friendship.requester.toString() === userId;
+    const isRequester = friendship.requester._id.toString() === userId;
 
     if (friendship.status === FriendshipStatus.PENDING && isRequester) {
         await deleteFriendshipById(friendshipId);
@@ -236,8 +236,8 @@ export const removeFriendshipService = async (userId: string, friendshipId: stri
         throw NotFoundException('Không tìm thấy bạn bè để xóa');
     }
 
-    const isRequester = friendship.requester.toString() === userId;
-    const isRecipient = friendship.recipient.toString() === userId;
+    const isRequester = friendship.requester._id.toString() === userId;
+    const isRecipient = friendship.recipient._id.toString() === userId;
 
     if (friendship.status === FriendshipStatus.ACCEPTED && (isRequester || isRecipient)) {
         await deleteFriendshipById(friendshipId);

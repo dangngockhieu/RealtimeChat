@@ -8,7 +8,9 @@ export const findFriendship = async (userId1: string, userId2: string) => {
             { requester: userId1, recipient: userId2 },
             { requester: userId2, recipient: userId1 }
         ]
-    }).exec();
+    })
+    .select('recipient requester status blockedBy')
+    .exec();
 };
 
 // Tìm liên kết bạn bè theo ID
@@ -18,7 +20,9 @@ export const findById = async (id: string, populateUsers = false) => {
         query = query.populate('requester', '_id email firstName lastName')
                      .populate('recipient', '_id email firstName lastName');
     }
-    return await query.exec();
+    return await query
+        .select('recipient requester status blockedBy')
+        .exec();
 };
 
 // Tạo lời mời kết bạn mới
