@@ -1,23 +1,35 @@
-import { ConversationPrivacy } from './../schemas/conversation.schema';
 import { ClientSession, Types } from "mongoose";
 import { Member, IMember, MemberStatus, MemberRole } from "../schemas/member.schema";
-import { IUser } from "../schemas/user.schema";
 
 export type MemberWithUser = Omit<IMember, 'userId'> & {
-    userId: IUser;
+    userId: {
+        _id?: Types.ObjectId;
+        firstName: string;
+        lastName: string;
+    };
 };
 
-// Thông tin chi tiết (vai trò, trạng thái, thời gian đọc tin cuối,...)
+// Thông tin chi tiết (thời gian đọc tin cuối,...)
 // của chính người dùng hiện tại (current user) trong cuộc trò chuyện
 export const currentUserMemberInfo = async (conversationId: string, currentUserId: string) => {
     const member = await Member.findOne({ conversationId, userId: currentUserId })
-                .lean()
-                .exec();
+            .select('lastReadAt')
+            .lean()
+            .exec();
     return member;
 }
 
+// Lấy Member role của user hiện tại trong group chat
+export const getMyMemberRoleInGroupChat = async (token: string, userId: string): Promise<MemberRole | null> => {
+    const member = await Member.findOne({ inviteCode: token, userId })
+            .select('memberRole')
+            .lean()
+            .exec();
+    return member ? member.memberRole : null;
+}
+
 // Tìm thành viên còn lại trong cuộc trò chuyện DIRECT
-export const findMembersByConversationId = async (userId: string, conversationId: string): Promise<MemberWithUser> => {
+export const findMembersDirectByConversationId = async (userId: string, conversationId: string): Promise<MemberWithUser> => {
     const members = await Member.findOne({
             conversationId,
             userId: { $ne: userId },
@@ -80,12 +92,11 @@ export const findConversationIdsByUserId = async (userId: string): Promise<strin
 }
 
 // Thêm mới người dùng vào cuộc trò chuyện
-export const addUserToConversation = async (conversationId: string, userId: string, role: MemberRole, status: MemberStatus, session?: ClientSession) => {
-    const joinedAt = new Date();
+export const addUserToConversation = async (conversationId: string, userId: string, memberRole: MemberRole, status: MemberStatus, joinedAt: Date, session?: ClientSession) => {
     await Member.insertOne({
             conversationId: new Types.ObjectId(conversationId),
             userId: new Types.ObjectId(userId),
-            role: role,
+            memberRole: memberRole,
             status: status,
             joinAt: joinedAt
     }, { session });
@@ -100,20 +111,29 @@ export const findMyMemberInfo = async (conversationId: string, userId: string): 
     return member as unknown as MemberWithUser;
 }
 
-// Lấy thông tin của tất cả thành viên trong cuộc trò chuyện
-export const findMembersInfoByConversationId = async (conversationId: string, userIds: string[],session?: ClientSession): Promise<MemberWithUser[]> => {
+// Lấy thông tin của mình trong cuộc trò chuyện với token
+export const findMyMemberInfoưithToken = async (token: string, userId: string): Promise<MemberWithUser> => {
+    const member = await Member.findOne({ inviteCode: token, userId })
+            .populate('userId', 'role')
+            .lean()
+            .exec();
+    return member as unknown as MemberWithUser;
+}
+
+// Lấy thông tin của tất cả thành viên xem có ở trong cuộc trò chuyện hay ko
+export const checkMembersByConversationId = async (conversationId: string, userIds: string[],session?: ClientSession): Promise<MemberWithUser[]> => {
     const members = await Member.find({
         conversationId,
         userId: { $in: userIds }
     }, null, { session })
-        .populate('userId', 'firstName lastName role')
+        .populate('userId', 'firstName lastName')
         .lean()
         .exec();
     return members as unknown as MemberWithUser[];
 }
 
 export const createMember = async (
-    member: Pick<IMember, 'role' | 'status' | 'joinAt'> & {
+    member: Pick<IMember, 'memberRole' | 'status' | 'joinAt'> & {
         conversationId: IMember['conversationId'] | string;
         userId: IMember['userId'] | string;
     },
@@ -125,5 +145,21 @@ export const createMember = async (
 
 // Cập nhật thông tin thành viên
 export const saveMember = async (member: IMember | MemberWithUser, session?: ClientSession) => {
-    return await Member.findByIdAndUpdate(member._id, member, { session, new: true }).exec();
+    return await Member.findByIdAndUpdate(
+        member._id,
+        member,
+        { session, returnDocument: 'after' }
+    ).exec();
 };
+
+// Lấy tất cả thành viên của group chat
+export const getMembersByConversationId = async (limit: number, filter: any): Promise<MemberWithUser[]> => {
+    const members = await Member
+        .find(filter)
+        .populate('userId', 'firstName lastName')
+        .sort({ _id: -1 })
+        .limit(limit + 1)
+        .lean()
+        .exec();
+    return members as unknown as MemberWithUser[];
+}

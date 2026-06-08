@@ -31,7 +31,7 @@ export interface MemberInfoDto{
     userId: string;
     firstName: string;
     lastName: string;
-    role: MemberRole;
+    memberRole: MemberRole;
 }
 
 export interface ConversationDetailResponseDto {
@@ -61,4 +61,9 @@ export class ConversationSummaryResponseDto {
     @Expose()
     @Type(() => LastMessageResponseDto)
     lastMessage: LastMessageResponseDto | null;
+}
+
+export interface ConversationNameResponseDto {
+    id: string | null;
+    name: string | null;
 }

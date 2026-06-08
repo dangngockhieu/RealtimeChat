@@ -17,10 +17,6 @@ export class CreateGroupChatDto {
     @IsEnum(ConversationPrivacy)
     privacy: ConversationPrivacy;
 
-    @IsBoolean()
-    @IsNotEmpty()
-    joinByLink: boolean;
-
     @IsArray()
     @IsMongoId({ each: true })
     @ArrayMinSize(2)

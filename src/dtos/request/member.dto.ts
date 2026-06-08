@@ -8,3 +8,9 @@ export class AddUserToConversationRequestDto {
     @IsArray({ message: 'UserIds phải là một mảng' })
     userIds: string[];
 }
+
+export class TargetUserIdRequestDto {
+    @IsNotEmpty({ message: 'UserId không được để trống' })
+    @IsString({ message: 'UserId phải là một chuỗi' })
+    targertUserId: string;
+}
