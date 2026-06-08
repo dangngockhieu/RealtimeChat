@@ -20,13 +20,12 @@ export interface IMember extends Document {
     _id: Types.ObjectId;
     conversationId: Types.ObjectId | IConversation;
     userId: Types.ObjectId | IUser;
-    role: MemberRole;
+    memberRole: MemberRole;
     status: MemberStatus;
     joinAt: Date;
     leftAt?: Date;
     lastReadMessageId?: Types.ObjectId | IMessage;
     lastReadAt?: Date;
-    cleanedAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -43,7 +42,7 @@ const MemberSchema = new Schema<IMember>(
             ref: 'User',
             required: true,
         },
-        role: {
+        memberRole: {
             type: String,
             enum: Object.values(MemberRole),
             required: true,
@@ -67,9 +66,6 @@ const MemberSchema = new Schema<IMember>(
             ref: 'Message',
         },
         lastReadAt: {
-            type: Date,
-        },
-        cleanedAt: {
             type: Date,
         },
     },

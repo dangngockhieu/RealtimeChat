@@ -41,10 +41,6 @@ const ConversationSchema = new Schema<IConversation>(
             type: String,
             trim: true,
         },
-        // Có cho phép tham gia qua link mời không
-        joinByLink: {
-            type: Boolean
-        },
         // Mã mời tham gia nhóm
         inviteCode: {
             type: String,

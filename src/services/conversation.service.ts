@@ -1,14 +1,16 @@
 import { startSession } from "mongoose";
 import 'dotenv/config';
 import { CreateGroupChatDto } from "../dtos/request/conversation.dto";
-import { ConversationDetailResponseDto, ConversationSummaryResponseDto } from "../dtos/response/conversation.dto";
+import { ConversationDetailResponseDto, ConversationNameResponseDto, ConversationSummaryResponseDto } from "../dtos/response/conversation.dto";
 import { InternalServerException } from "../middlewares/formatResponse/exception/customException";
 import {
+    changeConversationInviteCode,
     changeConversationPrivacy,
     createConversation,
     createDirectConversation,
     findConversationsByUserId,
-    findDirectConversation
+    findDirectConversation,
+    getConversationByInviteCode
 } from "../repositories/conversation.repository";
 import {
     findMembersDirectByConversationId,
@@ -17,45 +19,52 @@ import {
     findMyMemberInfo,
     insertDirectChatMembers,
     insertManyUserToConversation,
-    MemberWithUser
+    MemberWithUser,
+    getMyMemberRoleInGroupChat
 } from "../repositories/member.repository";
 import { countMessagesUnRead } from "../repositories/message.repository";
 import { plainToInstance } from "class-transformer";
 import { CursorPaginateResponse } from "../dtos/response/pagination.dto";
 import { ConversationPrivacy, ConversationType } from "../schemas/conversation.schema";
 import { MemberRole, MemberStatus } from "../schemas/member.schema";
+import { randomBytes } from 'crypto';
+
+const generateInviteCode = () => {
+    return randomBytes(8).toString('base64url');
+};
 
 // Tạo nhóm chat mới
 export const createGroupChatService = async (creatorId: string, dto: CreateGroupChatDto): Promise<ConversationDetailResponseDto> => {
+    const inviteCode = generateInviteCode();
     const session = await startSession();
-        session.startTransaction();
-        try {
-            const newConversation = await createConversation(dto, session);
-            await insertManyUserToConversation (
-                newConversation._id.toString(), creatorId, dto.participantIds, session
-            );
+    session.startTransaction();
+    try {
+        const newConversation = await createConversation(dto, inviteCode, session);
+        await insertManyUserToConversation (
+            newConversation._id.toString(), creatorId, dto.participantIds, session
+        );
 
-            await session.commitTransaction();
+        await session.commitTransaction();
 
-            return {
-                id: newConversation._id.toString(),
-                name: dto.name,
-                type: ConversationType.GROUP,
-                privacy: dto.privacy,
-                memberCount: dto.participantIds.length + 1,
-                myMembership: {
-                    role: MemberRole.OWNER,
-                    status: MemberStatus.ACCEPTED,
-                    lastReadAt: null,
-                    unreadCount: 0
-                }
-            };
-        } catch (error) {
-            await session.abortTransaction();
-            throw InternalServerException('Không thể tạo nhóm chat.');
-        } finally {
-            await session.endSession();
-        }
+        return {
+            id: newConversation._id.toString(),
+            name: dto.name,
+            type: ConversationType.GROUP,
+            privacy: dto.privacy,
+            memberCount: dto.participantIds.length + 1,
+            myMembership: {
+                role: MemberRole.OWNER,
+                status: MemberStatus.ACCEPTED,
+                lastReadAt: null,
+                unreadCount: 0
+            }
+        };
+    } catch (error) {
+        await session.abortTransaction();
+        throw InternalServerException('Không thể tạo nhóm chat.');
+    } finally {
+        await session.endSession();
+    }
 }
 
 // Find or Create cuộc trò chuyện trực tiếp giữa 2 người
@@ -172,5 +181,34 @@ export const changeConversationPrivacyService = async (userId: string, conversat
 
 // Lấy link mời tham gia cuộc trò chuyện
 export const getInviteLinkService = async (userId: string, token: string) => {
-    return `${process.env.BACKEND_URL}/conversations/${token}`;
+    const memberRole = await getMyMemberRoleInGroupChat(token, userId);
+    if (!memberRole || memberRole === MemberRole.MEMBER) {
+        throw InternalServerException('Bạn không có quyền lấy link mời tham gia cuộc trò chuyện này');
+    }
+    return {
+        inviteLink: `${process.env.BACKEND_URL}/conversations/name/${token}`
+    };
+}
+
+// Lấy tên của nhóm chat
+export const getConversationNameService = async (token: string): Promise<ConversationNameResponseDto> => {
+    const conversation = await getConversationByInviteCode(token);
+    return {
+        id: conversation?._id.toString() || null,
+        name: conversation?.name || null
+    };
+};
+
+// Thay đổi link mời tham gia nhóm chat
+// Lấy link mời tham gia cuộc trò chuyện
+export const changeInviteLinkService = async (userId: string, conversationId: string) => {
+    const member = await findMyMemberInfo(conversationId, userId);
+    if (!member || member.memberRole === MemberRole.MEMBER) {
+        throw InternalServerException('Bạn không có quyền thay đổi link mời tham gia cuộc trò chuyện này');
+    }
+    const inviteCode = generateInviteCode();
+    await changeConversationInviteCode(conversationId, inviteCode);
+    return {
+        inviteLink: `${process.env.BACKEND_URL}/conversations/name/${inviteCode}`
+    }
 }

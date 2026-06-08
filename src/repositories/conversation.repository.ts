@@ -2,23 +2,18 @@ import { ClientSession, Types } from "mongoose";
 import { CreateGroupChatDto } from "../dtos/request/conversation.dto";
 import { Conversation, ConversationPrivacy, ConversationType } from "../schemas/conversation.schema";
 import { Member } from "../schemas/member.schema";
-import { randomBytes } from 'crypto';
-
-const generateInviteCode = () => {
-    return randomBytes(8).toString('base64url');
-};
 
 // Tìm kiếm cuộc trò chuyện theo token link mời
-export const getPrivacyConversationByInviteCode = async (inviteCode: string) => {
+export const getConversationByInviteCode = async (inviteCode: string) => {
     return await Conversation
     .findOne({ inviteCode })
-    .select('privacy')
+    .select('name')
     .lean()
     .exec();
 }
 
 // Tạo nhóm mới
-export const createConversation = async (dto: CreateGroupChatDto, session?: ClientSession) => {
+export const createConversation = async (dto: CreateGroupChatDto, inviteCode: string, session?: ClientSession) => {
     const lastMessageAt = new Date();
     while (true) {
         try {
@@ -28,7 +23,7 @@ export const createConversation = async (dto: CreateGroupChatDto, session?: Clie
                         type: ConversationType.GROUP,
                         privacy: dto.privacy,
                         name: dto.name,
-                        inviteCode: generateInviteCode(),
+                        inviteCode: inviteCode,
                         memberCount: dto.participantIds.length + 1,
                         lastMessageAt,
                     },
@@ -113,5 +108,13 @@ export const changeConversationMemberCount = async (conversationId: string, incr
         conversationId,
         { $inc: { memberCount: incrementBy } },
         { session }
+    ).exec();
+};
+
+// Thay đổi inviteCode của cuộc trò chuyện
+export const changeConversationInviteCode = async (conversationId: string, inviteCode: string) => {
+    await Conversation.findByIdAndUpdate(
+        conversationId,
+        { inviteCode }
     ).exec();
 };

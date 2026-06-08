@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { UserAccount } from '../dtos/response/auth.dto';
 import { ChangeConversationPrivacyDto, CreateDirectChatDto, CreateGroupChatDto } from '../dtos/request/conversation.dto';
-import { changeConversationPrivacyService, createGroupChatService, findOrCreateDirectChatService, getMyConversationsService } from '../services/conversation.service';
+import { changeConversationPrivacyService, createGroupChatService, findOrCreateDirectChatService, getConversationNameService, getInviteLinkService, getMyConversationsService } from '../services/conversation.service';
 
 // Tạo nhóm chat mới
 export const createGroupChat = async (req: Request, res: Response) => {
@@ -36,3 +36,18 @@ export const changeConversationPrivacy = async (req: Request, res: Response) => 
     await changeConversationPrivacyService(user.id, conversationId, privacy);
     res.customSuccess(null, 'Thay đổi privacy của cuộc trò chuyện thành công');
 };
+
+// Lấy link mời tham gia nhóm
+export const getLinkJoinGroup = async (req: Request, res: Response) => {
+    const user = req.user as UserAccount;
+    const token = req.params.token as string;
+    const result = await getInviteLinkService(user.id, token);
+    res.customSuccess(result, "Lấy link tham gia nhóm thành công")
+}
+
+// Lấy tên của nhóm chat
+export const getConversationName = async (req: Request, res: Response) => {
+    const token = req.params.token as string;
+    const result = await getConversationNameService(token);
+    res.customSuccess(result, "Lấy tên nhóm chat thành công");
+}
