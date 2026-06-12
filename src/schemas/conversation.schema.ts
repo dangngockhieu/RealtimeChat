@@ -4,6 +4,7 @@ import { IMessage } from './message.schema';
 export enum ConversationType {
     DIRECT = 'DIRECT',
     GROUP = 'GROUP',
+    COMMUNITY = 'COMMUNITY'
 }
 
 export enum ConversationPrivacy {

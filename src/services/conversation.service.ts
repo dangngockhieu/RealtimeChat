@@ -6,6 +6,7 @@ import { InternalServerException } from "../middlewares/formatResponse/exception
 import {
     changeConversationInviteCode,
     changeConversationPrivacy,
+    changeConversationType,
     createConversation,
     createDirectConversation,
     findConversationsByUserId,
@@ -177,6 +178,18 @@ export const changeConversationPrivacyService = async (userId: string, conversat
         throw InternalServerException('Bạn không có quyền thay đổi privacy của cuộc trò chuyện này');
     }
     await changeConversationPrivacy(conversationId, privacy);
+}
+
+// Thay đổi type của cuộc trò chuyện
+export const changeConversationTypeCommunityService = async (userId: string, conversationId: string): Promise<void> => {
+    const currentUser = await findMyMemberInfo(conversationId, userId);
+    if (!currentUser) {
+        throw InternalServerException('Bạn không phải là thành viên của cuộc trò chuyện này');
+    }
+    if (currentUser.memberRole === MemberRole.MEMBER) {
+        throw InternalServerException('Bạn không có quyền thay đổi type của cuộc trò chuyện này');
+    }
+    await changeConversationType(conversationId, ConversationType.COMMUNITY);
 }
 
 // Lấy link mời tham gia cuộc trò chuyện

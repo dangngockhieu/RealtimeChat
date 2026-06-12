@@ -1,7 +1,7 @@
 import { Router, Express } from 'express';
 import { authenticate } from '../middlewares/auth';
 import { validateDto } from '../middlewares/validate/validate.dto';
-import { changeConversationPrivacy, createGroupChat, findOrCreateDirectChat, getConversationName, getLinkJoinGroup, getMyConversations } from '../controllers/conversation.controller';
+import { changeConversationPrivacy, changeConversationTypeCommunity, createGroupChat, findOrCreateDirectChat, getConversationName, getLinkJoinGroup, getMyConversations } from '../controllers/conversation.controller';
 import { ChangeConversationPrivacyDto, CreateDirectChatDto, CreateGroupChatDto } from '../dtos/request/conversation.dto';
 
 const router = Router();
@@ -25,6 +25,9 @@ const conversationRoutes = (app: Express) => {
 
     // Thay đổi privacy của cuộc trò chuyện
     router.patch('/:id/privacy', authenticate, validateDto(ChangeConversationPrivacyDto), changeConversationPrivacy);
+
+    // Đổi từ nhóm chat sang cộng đồng
+    router.patch('/:id/type', authenticate, changeConversationTypeCommunity);
 
     app.use('/conversations', router);
 };

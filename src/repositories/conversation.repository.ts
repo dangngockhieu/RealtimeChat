@@ -94,6 +94,15 @@ export const changeConversationPrivacy = async (conversationId: string, privacy:
     ).exec();
 }
 
+// Thay đổi type của cuộc trò chuyện
+export const changeConversationType = async (conversationId: string, type: ConversationType) => {
+    await Conversation.findByIdAndUpdate(
+        conversationId,
+        { type },
+        { returnDocument: 'after' }
+    ).exec();
+}
+
 // Lấy thông tin cuộc trò chuyện
 export const getConversationInfo = async (conversationId: string) => {
     return await Conversation.findById(conversationId)
