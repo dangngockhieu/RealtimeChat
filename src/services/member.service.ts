@@ -6,6 +6,7 @@ import {
 } from "../repositories/conversation.repository";
 import {
     addUserToConversation,
+    changeRoleInConversation,
     checkMembersByConversationId,
     findMyMemberInfo,
     getMembersByConversationId,
@@ -128,13 +129,16 @@ export const leftConversationService = async (userId: string, conversationId: st
     if (memberInfo.status !== MemberStatus.ACCEPTED) {
         throw BadRequestException('Bạn không phải là thành viên của cuộc trò chuyện này.');
     }
+    if(memberInfo.memberRole === MemberRole.OWNER){
+        throw BadRequestException("Bạn chưa chuyển quyền Owner")
+    }
     memberInfo.status = MemberStatus.LEFT;
     memberInfo.leftAt = new Date();
     await saveMember(memberInfo);
     await changeConversationMemberCount(conversationId, -1);
 }
 
-// Tạo cuộc trò chuyện 1-1
+// Xóa thành viên khỏi cuộc trò chuyện (chỉ admin hoặc owner mới có quyền này)
 export const removeUserFromConversationService = async (userId: string, targetUserId: string, conversationId: string) => {
     const [currentUser, targetMember] = await Promise.all([
         findMyMemberInfo(conversationId, userId),
@@ -143,8 +147,8 @@ export const removeUserFromConversationService = async (userId: string, targetUs
     if (!currentUser || !targetMember) {
         throw BadRequestException('Không tìm thấy thông tin thành viên trong cuộc trò chuyện.');
     }
-    if (currentUser.memberRole === MemberRole.MEMBER) {
-        throw BadRequestException('Chỉ quản trị viên mới có thể xóa thành viên khỏi cuộc trò chuyện.');
+    if (currentUser.memberRole === MemberRole.MEMBER || (currentUser.memberRole === MemberRole.ADMIN && targetMember.memberRole === MemberRole.ADMIN)) {
+        throw BadRequestException('Bạn không có quyền xóa thành viên khỏi cuộc trò chuyện.');
     }
     targetMember.status = MemberStatus.REMOVED;
     targetMember.leftAt = new Date();
@@ -278,5 +282,56 @@ export const joinConversationService = async (userId: string, conversationId: st
         throw InternalServerException('Không thể thêm thành viên vào cuộc trò chuyện.');
     } finally {
         await session.endSession();
+    }
+}
+
+// Change quyền của thành viên trong cuộc trò chuyện
+export const changeMemberRoleService = async (userId: string, conversationId: string, memberId: string, newRole: MemberRole) => {
+    const currentUser = await findMyMemberInfo(conversationId, userId);
+    if (!currentUser) {
+        throw BadRequestException('Bạn không phải là thành viên của cuộc trò chuyện.');
+    }
+    if (currentUser.memberRole !== MemberRole.OWNER) {
+        throw BadRequestException('Chỉ Owner mới có thể thay đổi quyền của thành viên trong cuộc trò chuyện.');
+    }
+    const memberInfo = await findMyMemberInfo(conversationId, memberId);
+    if (!memberInfo) {
+        throw BadRequestException('Không tìm thấy thông tin thành viên trong cuộc trò chuyện.');
+    }
+    await changeRoleInConversation(conversationId, memberId, newRole);
+}
+
+// Nhường lại quyền Owner cho user khác
+export const transferOwnership = async (userId: string, conversationId: string, memberId: string) => {
+    const currentUser = await findMyMemberInfo(conversationId, userId);
+    if (!currentUser) {
+        throw BadRequestException('Bạn không phải là thành viên của cuộc trò chuyện.');
+    }
+    if (currentUser.memberRole !== MemberRole.OWNER) {
+        throw BadRequestException('Chỉ Owner mới có thể thay đổi quyền của thành viên trong cuộc trò chuyện.');
+    }
+    const memberInfo = await findMyMemberInfo(conversationId, memberId);
+    if (!memberInfo) {
+        throw BadRequestException('Không tìm thấy thông tin thành viên trong cuộc trò chuyện.');
+    }
+    // KHỞI TẠO TRANSACTION
+    const session = await startSession();
+    try {
+        session.startTransaction();
+        // Thăng cấp thành viên mới lên OWNER
+        await changeRoleInConversation(conversationId, memberId, MemberRole.OWNER, session);
+
+        // Giáng cấp bản thân (chủ cũ) xuống ADMIN (hoặc MEMBER)
+        const currentMemberId = currentUser._id.toString(); 
+        await changeRoleInConversation(conversationId, currentMemberId, MemberRole.ADMIN, session);
+        // Xác nhận lưu dữ liệu
+        await session.commitTransaction();
+    } catch (error) {
+        // Rollback nếu có bất kỳ lỗi gì xảy ra (ví dụ rớt mạng, database timeout)
+        await session.abortTransaction();
+        throw InternalServerException('Đã xảy ra lỗi trong quá trình nhượng quyền. Vui lòng thử lại.');
+    } finally {
+        // Luôn đóng session để giải phóng RAM cho server
+        session.endSession();
     }
 }

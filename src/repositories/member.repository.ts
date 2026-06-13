@@ -163,3 +163,17 @@ export const getMembersByConversationId = async (limit: number, filter: any): Pr
         .exec();
     return members as unknown as MemberWithUser[];
 }
+
+// Thay đổi quyền của user trong nhóm chat
+export const changeRoleInConversation = async (
+    conversationId: string, 
+    memberId: string, 
+    newRole: MemberRole,
+    session?: ClientSession
+) => {
+    return await Member.updateOne(
+        { conversationId, _id: memberId },
+        { memberRole: newRole },
+        { session }
+    ).exec();
+};
