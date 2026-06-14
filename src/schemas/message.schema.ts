@@ -13,10 +13,6 @@ export interface IMessage extends Document {
     isRecalled: boolean;
     // Thời gian thu hồi tin nhắn
     recallAt?: Date;
-    // Đánh dấu ai đã thu hồi tin nhắn( ng gửi hoặc admin thu hồi )
-    recalledBy?: Types.ObjectId | IUser;
-    // Danh sách người dùng đã xóa tin nhắn này ( Xóa ở phía tôi )
-    deletedBy?: Types.ObjectId[];
     createdAt: Date;
     updatedAt: Date;
 }
@@ -48,14 +44,6 @@ const MessageSchema = new Schema<IMessage>(
         },
         recallAt: {
             type: Date,
-        },
-        recalledBy: {
-            type: Schema.Types.ObjectId,
-            ref: 'User',
-        },
-        deletedBy: {
-            type: [Schema.Types.ObjectId],
-            ref: 'User',
         }
     },
     {
