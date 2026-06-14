@@ -14,6 +14,7 @@ import {
 } from '../repositories/friendship.repository';
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '../middlewares/formatResponse/exception/customException';
 import { FriendshipResponseDto, FriendshipUserDto } from '../dtos/response/friendship.dto';
+import { emitToUser } from './socket.service';
 
 // Helper format trả về
 const toFriendshipUserDto = (user: any): FriendshipUserDto => {
@@ -65,12 +66,22 @@ export const createFriendshipService = async (userId: string, friendId: string):
             await saveFriendship(existingFriendship);
 
             const friendship = await findById(existingFriendship._id.toString(), true);
-            return {
+            const result = {
                 id: friendship?._id.toString() as string,
                 status: friendship?.status as FriendshipStatus,
                 requester: toFriendshipUserDto(friendship?.requester),
                 recipient: toFriendshipUserDto(friendship?.recipient),
             };
+            emitToUser(friendId, 'new_friend_request', {
+                type: 'NEW_FRIEND_REQUEST',
+                title: 'Lời mời kết bạn mới',
+                message: `${result.requester.firstName} ${result.requester.lastName} vừa gửi cho bạn một lời mời kết bạn!`,
+                data: {
+                    id: friendship?._id.toString() as string,
+                    requester: toFriendshipUserDto(friendship?.requester)
+                }
+            });
+            return result;
         }
 
         if (existingFriendship.status === FriendshipStatus.DECLINED) {
@@ -81,14 +92,25 @@ export const createFriendshipService = async (userId: string, friendId: string):
     // Tạo mới
     const savedFriendship = await createFriendshipRepo(userId, friendId, FriendshipStatus.PENDING);
     const friendship = await findById(savedFriendship._id.toString(), true);
-    return {
+    const result = {
         id: friendship?._id.toString() as string,
         status: friendship?.status as FriendshipStatus,
         requester: toFriendshipUserDto(friendship?.requester),
         recipient: toFriendshipUserDto(friendship?.recipient),
     };
+    emitToUser(friendId, 'new_friend_request', {
+        type: 'NEW_FRIEND_REQUEST',
+        title: 'Lời mời kết bạn mới',
+        message: `${result.requester.firstName} ${result.requester.lastName} vừa gửi cho bạn một lời mời kết bạn!`,
+        data: {
+            id: friendship?._id.toString() as string,
+            requester: toFriendshipUserDto(friendship?.requester)
+        }
+    });
+    return result;
 };
 
+// Chấp nhận lời mời kết bạn
 export const acceptFriendshipService = async (userId: string, friendshipId: string): Promise<void> => {
     const friendship = await findById(friendshipId);
 
@@ -109,6 +131,7 @@ export const acceptFriendshipService = async (userId: string, friendshipId: stri
     await saveFriendship(friendship);
 };
 
+// Từ chối lời mời kết bạn
 export const declineFriendshipService = async (userId: string, friendshipId: string): Promise<void> => {
     const friendship = await findById(friendshipId);
 

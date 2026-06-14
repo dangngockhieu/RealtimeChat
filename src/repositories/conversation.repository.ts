@@ -95,11 +95,20 @@ export const changeConversationPrivacy = async (conversationId: string, privacy:
 }
 
 // Thay đổi type của cuộc trò chuyện
-export const changeConversationType = async (conversationId: string, type: ConversationType) => {
+export const changeConversationType = async (conversationId: string, type: ConversationType, session?: ClientSession) => {
     await Conversation.findByIdAndUpdate(
         conversationId,
         { type },
-        { returnDocument: 'after' }
+        { returnDocument: 'after', session }
+    ).exec();
+}
+
+// Xóa deleteBy của cuộc trò chuyện
+export const clearConversationDeleteBy = async (conversationId: string, session?: ClientSession) => {
+    await Conversation.findByIdAndUpdate(
+        conversationId,
+        { $set: { deletedBy: [] } },
+        { session }
     ).exec();
 }
 

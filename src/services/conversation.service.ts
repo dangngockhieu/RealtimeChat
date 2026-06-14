@@ -7,6 +7,7 @@ import {
     changeConversationInviteCode,
     changeConversationPrivacy,
     changeConversationType,
+    clearConversationDeleteBy,
     createConversation,
     createDirectConversation,
     findConversationsByUserId,
@@ -29,6 +30,7 @@ import { CursorPaginateResponse } from "../dtos/response/pagination.dto";
 import { ConversationPrivacy, ConversationType } from "../schemas/conversation.schema";
 import { MemberRole, MemberStatus } from "../schemas/member.schema";
 import { randomBytes } from 'crypto';
+import { emitToRoom, emitToUser, joinRoom } from "./socket.service";
 
 const generateInviteCode = () => {
     return randomBytes(8).toString('base64url');
@@ -46,6 +48,27 @@ export const createGroupChatService = async (creatorId: string, dto: CreateGroup
         );
 
         await session.commitTransaction();
+
+        const allMemberIds = [creatorId, ...dto.participantIds];
+        const groupId = newConversation._id.toString();
+
+        // Lùa tất cả các thành viên (đang online) vào phòng trước
+        allMemberIds.forEach(userId => {
+            joinRoom(userId, groupId);
+        });
+
+        // Dùng 1 lệnh phát loa duy nhất cho toàn bộ căn phòng
+        emitToRoom(groupId, 'new_group_created', {
+            type: 'NEW_GROUP_CREATED',
+            message: `Bạn đã được thêm vào nhóm chat "${newConversation.name}"`,
+            data: {
+                id: groupId,
+                name: dto.name,
+                type: ConversationType.GROUP,
+                privacy: dto.privacy,
+                memberCount: dto.participantIds.length + 1
+            }
+        });
 
         return {
             id: newConversation._id.toString(),
@@ -110,6 +133,12 @@ export const findOrCreateDirectChatService = async(userId1: string, userId2: str
         await session.commitTransaction();
 
         const otherMember = await findMembersDirectByConversationId(userId1, newConv._id.toString()) as MemberWithUser;
+
+        const allMemberIds = [userId1, userId2];
+
+        allMemberIds.forEach(userId => {
+            joinRoom(userId, newConv._id.toString());
+        });
 
         return {
             id: newConv._id.toString(),
@@ -189,7 +218,26 @@ export const changeConversationTypeCommunityService = async (userId: string, con
     if (currentUser.memberRole === MemberRole.MEMBER) {
         throw InternalServerException('Bạn không có quyền thay đổi type của cuộc trò chuyện này');
     }
-    await changeConversationType(conversationId, ConversationType.COMMUNITY);
+    const session = await startSession();
+    session.startTransaction();
+    try {
+        await changeConversationType(conversationId, ConversationType.COMMUNITY, session);
+        await clearConversationDeleteBy(conversationId, session);
+
+        emitToRoom(conversationId, 'conversation_type_changed', {
+            type: 'CONVERSATION_TYPE_CHANGED',
+            message: 'Nhóm đã được nâng cấp thành Cộng đồng!',
+            data: {
+                conversationId: conversationId,
+                newType: ConversationType.COMMUNITY
+            }
+        });
+    } catch (error) {
+        await session.abortTransaction();
+        throw InternalServerException('Lỗi thay đổi type của cuộc trò chuyện');
+    } finally {
+        await session.endSession();
+    }
 }
 
 // Lấy link mời tham gia cuộc trò chuyện
